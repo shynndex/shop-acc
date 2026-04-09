@@ -8,7 +8,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router";
-import { useAuthStore } from "../../stores/useAuthStore";
+import { useAuthStore } from "../stores/useAuthStore";
+
 const signUpSchema = z.object({
   firstname: z.string().min(1, "Tên bắt buộc phải có"),
   lastname: z.string().min(1, "Họ bắt buộc phải có"),
