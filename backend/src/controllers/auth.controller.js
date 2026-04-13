@@ -3,6 +3,7 @@ import User from "../models/User.model.js";
 import jwt from "jsonwebtoken";
 import Session from "../models/Session.model.js";
 import crypto from "crypto";
+import { sendVerificationEmail } from "../services/mailService.js";
 
 const ACCESS_TOKEN_SECRET_TTL = "30m";
 
@@ -24,12 +25,22 @@ export const signUp = async (req, res) => {
       return;
     }
 
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const displayName = `${firstName} ${lastName}`;
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     await User.create({
       username,
-      password,
+      hashedPassword,
       email,
-      displayName: `${firstName} ${lastName}`,
+      displayName,
+      verificationToken,
+      verificationTokenExpiry,
     });
+
+    await sendVerificationEmail(email, verificationToken, displayName);
 
     res.status(201).json({ message: "Tạo tài khoản thành công" });
   } catch (error) {
@@ -47,11 +58,28 @@ export const signIn = async (req, res) => {
 
     const user = await User.findOne({ username }).select("+hashedPassword");
 
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message:
+          "Email chưa được xác thực. Vui lòng kiểm tra hộp thư hoặc yêu cầu gửi lại link.",
+      });
+    }
+
     if (!user) {
       return res
         .status(401)
         .json({ message: "Sai tên đăng nhập hoặc password" });
     }
+    
+    const userData = {
+      id: user._id.toString(), // ← Quan trọng: chuyển ObjectId → string
+      username: user.username,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      balance: user.balance,
+      createdAt: user.createdAt,
+    };
 
     const passwordCorrect = await user.comparePassword(password);
 
@@ -82,6 +110,7 @@ export const signIn = async (req, res) => {
     return res.status(200).json({
       message: `User ${user.displayName} đã đăng nhập thành công`,
       accessToken,
+      user: userData,
     });
   } catch (error) {
     console.log("Lỗi khi gọi signIn", error);
@@ -96,7 +125,7 @@ export const signOut = async (req, res) => {
       await Session.deleteMany({
         $or: [{ refreshToken: token }, { userId: req.user?.id }],
       });
-      res.clearCookie("refreshToken",{path:"/"});
+      res.clearCookie("refreshToken", { path: "/" });
     }
     return res.sendStatus(204);
   } catch (error) {
@@ -148,6 +177,73 @@ export const refreshToken = async (req, res) => {
     return res.json({ accessToken });
   } catch (error) {
     console.log("Lỗi khi gọi refreshToken", error);
+    return res.status(500).json({ message: "Lỗi hệ thống" });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token)
+      return res.status(400).json({ message: "Token xác minh không hợp lệ" });
+
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpiry: { $gt: Date.now() },
+    });
+
+    if (!user)
+      return res
+        .status(400)
+        .json({ message: "Token xác minh không hợp lệ hoặc đã hết hạn" });
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiry = undefined;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Email đã được xác minh thành công! Bạn có thể đăng nhập.",
+    });
+  } catch (error) {
+    console.log("Lỗi khi gọi verifyEmail", error);
+    return res.status(500).json({ message: "Lỗi hệ thống" });
+  }
+};
+
+export const resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email không hợp lệ" });
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
+    if (user.isVerified) {
+      return res.status(400).json({ message: "Tài khoản đã được xác minh" });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpiry = verificationTokenExpiry;
+
+    await user.save();
+
+    await sendVerificationEmail(
+      user.email,
+      verificationToken,
+      user.displayName,
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Đã gửi lại link xác thực. Vui lòng kiểm tra email." });
+  } catch (error) {
+    console.log("Lỗi khi gọi resendVerification", error);
     return res.status(500).json({ message: "Lỗi hệ thống" });
   }
 };
