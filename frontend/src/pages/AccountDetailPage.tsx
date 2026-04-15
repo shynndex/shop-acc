@@ -1,9 +1,11 @@
 import { ProductGallery } from "@/components/ProductGallery";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { accountService } from "@/services/accountService";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { Account } from "@/types";
+import { ShoppingCart } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -250,7 +252,96 @@ const AccountDetailPage = () => {
                 }
                 onClick={handlePurchase}
                 disabled={processing}
-              ></Button>
+              >
+                {processing ? (
+                  <span className="flex items-center gap-2">
+                    <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent">
+                      Đang xử lý...
+                    </span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <ShoppingCart className="size-5" />
+                    Mua ngay
+                  </span>
+                )}
+              </Button>
+
+              {user?.balance ||
+                (0 < account.price && (
+                  <Button
+                    variant={"outline"}
+                    className={
+                      "w-full h-10 mt-3 border-blue-200 text-blue-600 hover:bg-blue-50"
+                    }
+                    onClick={() =>
+                      toast.info("Tính năng thanh toán thẻ đang phát triển")
+                    }
+                  >
+                    Mua bằng ATM,Momo{" "}
+                    <span className="ml-2 font-bold">
+                      {account.price?.toLocaleString("vi-VN")} đ
+                    </span>
+                  </Button>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Mô tả tài khoản */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4 border-b pb-2">
+            Mô tả tài khoản
+          </h2>
+          <div className="prose max-w-none text-muted-foreground whitespace-pre-wrap">
+            {account.description || "Chưa có mô tả chi tiết"}
+          </div>
+
+          {/* Tài khoản liên quan */}
+          <div className="mt-12 border-t pt-8">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+              Tài khoản liên quan
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {MOCK_RELATED.map((item) => (
+                <Card
+                  key={item.id}
+                  className="cursor-pointer hover:shadow-md transition group border"
+                >
+                  <div className="aspect-[3/2] overflow-hidden rounded-t-lg bg-gray-100">
+                    <img
+                      src={item.image}
+                      alt={item.code}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                  </div>
+                  <CardContent className="p-3 space-y-1">
+                    <p className="font-bold text-sm text-blue-600">
+                      {item.code}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Mức rank: {item.rank}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Đăng ký: Trắng thông tin
+                    </p>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="font-bold text-sm">
+                        {item.price?.toLocaleString("vi-VN")}đ
+                      </span>
+                      {item.discount && (
+                        <Badge
+                          variant={"destructive"}
+                          className="h-5 px-1 text-[10px]"
+                        >
+                          {item.discount}%
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </div>

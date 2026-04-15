@@ -1,9 +1,12 @@
-import type { User } from "./user";
+import type { User } from ".";
 
 export interface AuthState {
   accessToken: string | null;
   user: User | null;
   loading: boolean;
+
+  signIn: (payload: { username: string; password: string }) => Promise<boolean>;
+
   signUp: (payload: {
     username: string;
     password: string;
@@ -11,4 +14,7 @@ export interface AuthState {
     firstName: string;
     lastName: string;
   }) => Promise<boolean>;
+  signOut: () => Promise<void>;
+  setAccessToken: (token: string) => void;
+  updateUser: (partialUser: Partial<User>) => void;
 }

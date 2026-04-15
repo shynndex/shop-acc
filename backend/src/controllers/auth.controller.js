@@ -70,7 +70,7 @@ export const signIn = async (req, res) => {
         .status(401)
         .json({ message: "Sai tên đăng nhập hoặc password" });
     }
-    
+
     const userData = {
       id: user._id.toString(), // ← Quan trọng: chuyển ObjectId → string
       username: user.username,

@@ -11,6 +11,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!accessToken || !user) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
+  
 
   return <>{children}</>;
 };

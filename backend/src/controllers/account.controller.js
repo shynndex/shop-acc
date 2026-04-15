@@ -4,7 +4,7 @@ export const getAccounts = async (req, res) => {
   try {
     const { game, type, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
 
-    const query = { status: "available" };
+    const query = {};
 
     if (game) query.game = game;
 

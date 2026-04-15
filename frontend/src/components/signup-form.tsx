@@ -1,160 +1,195 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "./ui/label";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router";
-import { useAuthStore } from "../stores/useAuthStore";
-
-const signUpSchema = z.object({
-  firstname: z.string().min(1, "Tên bắt buộc phải có"),
-  lastname: z.string().min(1, "Họ bắt buộc phải có"),
-  username: z.string().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự"),
-  email: z.email("Email không hợp lệ"),
-  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
-});
-
-type SignUpFormValues = z.infer<typeof signUpSchema>;
+import { Link, useNavigate } from "react-router";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export function SignupForm({
   className,
   ...props
-}: React.ComponentProps<"div">) {
-  const { signUp } = useAuthStore();
+}: React.ComponentProps<"form">) {
   const navigate = useNavigate();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SignUpFormValues>({
-    resolver: zodResolver(signUpSchema),
+  const { signUp, loading } = useAuthStore();
+
+  const [formData, setFormData] = useState({
+    username: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
-  const onSubmit = async (data: SignUpFormValues) => {
-    const { firstname, lastname, username, password, email } = data;
-    await signUp(username, password, email, lastname, firstname);
-    navigate("/signin");
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData({ ...formData, [id]: value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      if (formData.password !== formData.confirmPassword) {
+        toast.error("Mật khẩu xác nhận không khớp");
+        return;
+      }
+
+      if (formData.password.length < 8) {
+        toast.error("Mật khẩu phải có ít nhất 8 ký tự");
+        return;
+      }
+
+      const success = await signUp({
+        username: formData.username,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (success) {
+        toast.success("Đăng ký thành công!, Vui lòng đăng nhập.");
+        navigate("/signin");
+      } else {
+        toast.error("Đăng ký thất bại");
+      }
+    } catch (error: any) {
+      console.error(error);
+
+      const message =
+        error?.response?.data?.message || 
+        error?.message ||
+        "Có lỗi xảy ra, vui lòng thử lại";
+
+      toast.error(message);
+    }
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0 border-border">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col items-center text-center gap-2">
-                <a href="/" className="mx-auto block w-fit text-center">
-                  <img src="/logo.svg" alt="logo" />
-                </a>
-                <h1 className="text-2xl font-bold">Tao tai khoan</h1>
-                <p className="text-muted-foreground tetx-balance">
-                  Chao mung ban! Hay dang ki de bat dau
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="lastname" className="block text-sm">
-                    Ho
-                  </Label>
-                  <Input type="text" id="lastname" {...register("lastname")} />
-                  {errors.lastname && (
-                    <p className="text-destructive text-sm">
-                      {errors.lastname.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="firstname" className="block text-sm">
-                    Ten
-                  </Label>
-                  <Input
-                    type="text"
-                    id="firstname"
-                    {...register("firstname")}
-                  />
-                  {errors.firstname && (
-                    <p className="text-destructive text-sm">
-                      {errors.firstname.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="username" className="block text-sm">
-                  Ten dang nhap
-                </Label>
-                <Input
-                  type="text"
-                  id="username"
-                  placeholder="moji"
-                  {...register("username")}
-                />
-                {errors.username && (
-                  <p className="text-destructive text-sm">
-                    {errors.username.message}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="email" className="block text-sm">
-                  Email
-                </Label>
-                <Input
-                  type="email"
-                  id="email"
-                  placeholder="moji@example.com"
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-destructive text-sm">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="password" className="block text-sm">
-                  Mat khau
-                </Label>
-                <Input
-                  type="password"
-                  id="password"
-                  {...register("password")}
-                />
-                {errors.password && (
-                  <p className="text-destructive text-sm">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-              <Button type="submit" className="w-full">
-                Tao tai khoan
-              </Button>
-            </div>
+    <form
+      className={cn("flex flex-col gap-6", className)}
+      onSubmit={handleSubmit}
+      {...props}
+    >
+      <FieldGroup>
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h1 className="text-2xl font-bold">Tạo tài khoản</h1>
+          <p className="text-sm text-balance text-muted-foreground">
+            Điền thông tin bên dưới để tạo tài khoản
+          </p>
+        </div>
 
-            <div className="text-center text-sm">
-              Đã có tài khoản?{" "}
-              <a href="/signin" className="underline underline-offset-4">
-                Đăng nhập
-              </a>
-            </div>
-          </form>
-          <div className="relative hidden bg-muted md:block">
-            <img
-              src="/placeholderSignUp.png"
-              alt="Image"
-              className="absolute top-1/2 -translate-y-1/2 object-cover "
+        <Field>
+          <FieldLabel htmlFor="username">Tên đăng nhập</FieldLabel>
+          <Input
+            id="username"
+            type="text"
+            placeholder="nguyenvana"
+            required
+            value={formData.username}
+            onChange={handleChange}
+            minLength={3}
+          />
+          <FieldDescription>
+            Username dùng để đăng nhập, không chứa khoảng trắng.
+          </FieldDescription>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field>
+            <FieldLabel htmlFor="firstName">Họ</FieldLabel>
+            <Input
+              id="firstName"
+              type="text"
+              placeholder="Nguyễn"
+              required
+              value={formData.firstName}
+              onChange={handleChange}
             />
-          </div>
-        </CardContent>
-      </Card>
-      <div className="text-xs text-balance px-6 text-center *:[a]:hover:text-primary text-muted-foreground *:[a]:underline *:[a]:underline-offset-4">
-        Bằng cách tiếp tục, bạn đồng ý với <a href="#">Điều khoản dịch vụ</a> và{" "}
-        <a href="#">Chính sách bảo mật của chúng tôi </a>.
-      </div>
-    </div>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="lastName">Tên</FieldLabel>
+            <Input
+              id="lastName"
+              type="text"
+              placeholder="Văn A"
+              required
+              value={formData.lastName}
+              onChange={handleChange}
+            />
+          </Field>
+        </div>
+
+        <Field>
+          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <Input
+            id="email"
+            type="email"
+            placeholder="example@gmail.com"
+            required
+            value={formData.email}
+            onChange={handleChange}
+          />
+          <FieldDescription>
+            Chúng tôi sẽ sử dụng email này để liên hệ với bạn.
+          </FieldDescription>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="password">Mật khẩu</FieldLabel>
+          <Input
+            id="password"
+            type="password"
+            required
+            value={formData.password}
+            onChange={handleChange}
+            minLength={8}
+          />
+          <FieldDescription>
+            Tối thiểu 8 ký tự, nên có chữ hoa, số và ký tự đặc biệt.
+          </FieldDescription>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="confirmPassword">Xác nhận mật khẩu</FieldLabel>
+          <Input
+            id="confirmPassword"
+            type="password"
+            required
+            value={formData.confirmPassword}
+            onChange={handleChange}
+          />
+          <FieldDescription>Nhập lại mật khẩu để xác nhận.</FieldDescription>
+        </Field>
+
+        <Field>
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
+          >
+            {loading ? "Đang xử lý..." : "Tạo tài khoản"}
+          </Button>
+        </Field>
+
+        <FieldDescription className="text-center">
+          Đã có tài khoản?{" "}
+          <Link
+            to="/signin"
+            className="text-blue-700 font-medium hover:underline"
+          >
+            Đăng nhập
+          </Link>
+        </FieldDescription>
+      </FieldGroup>
+    </form>
   );
 }
-//1:32//54

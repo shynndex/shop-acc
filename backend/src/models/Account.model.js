@@ -28,16 +28,11 @@ const accountSchema = new mongoose.Schema(
     },
     images: [String],
     type: { type: String, default: "standard" }, // "trang", "reg", "random", "vip"...
-    status: {
-      type: String,
-      enum: ["available", "sold", "reserved"],
-      default: "available",
-    },
+
     //THÔNG TIN NHẠY CẢM (Ẩn khỏi public API)
     loginInfo: {
       username: { type: String, required: true },
       password: { type: String, required: true },
-      server: { type: String },
     },
     owner: {
       type: mongoose.Schema.Types.ObjectId,

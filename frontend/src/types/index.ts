@@ -39,3 +39,12 @@ export interface GameCategory {
   gameIcon: string; // Emoji hoặc URL icon
   categories: CategoryItem[];
 }
+
+export interface Order {
+  orderId:string;
+  accountId:string;
+  accountTitle:string;
+  credentials:Record<string,string>
+  price:number;
+  purchasedAt:string;
+}

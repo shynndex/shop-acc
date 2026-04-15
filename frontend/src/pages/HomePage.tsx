@@ -7,6 +7,7 @@ import {
   ChevronRight,
   MessageCircle,
 } from "lucide-react";
+import { AccountCategories } from "@/components/sections/AccountCategories";
 
 // Dữ liệu mẫu (nên move ra file constants/data sau này)
 const topUpData = [
@@ -26,7 +27,7 @@ const gameCategories = [
   { id: 6, name: "ACC GROW A GARDEN", icon: "🌱", color: "bg-green-100" },
 ];
 
-// 🔹 Sidebar: Top nạp thẻ
+//  Sidebar: Top nạp thẻ
 const TopUpSidebar = () => (
   <Card className="w-full max-w-sm">
     <CardContent className="p-4">
@@ -109,37 +110,7 @@ const GameCategories = () => (
   </div>
 );
 
-// 🔹 Section tài khoản Liên Quân
-const AccountSection = () => (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center text-2xl">🐉</div>
-        <h2 className="text-2xl font-bold">KHO NICK LIÊN QUÂN</h2>
-      </div>
-      <Button variant="ghost" className="gap-1 text-muted-foreground">
-        Xem tất cả <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {[1, 2, 3, 4].map((item) => (
-        <Card key={item} className="overflow-hidden cursor-pointer hover:shadow-xl transition-all group">
-          <div className="aspect-video bg-gradient-to-br from-blue-400 to-purple-600 relative">
-            <div className="absolute top-2 left-2"><Badge className="bg-red-500 text-white">SALE</Badge></div>
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-          </div>
-          <CardContent className="p-3">
-            <h3 className="font-semibold text-sm mb-2 line-clamp-2">Acc Liên Quân Full Skin VIP {item}</h3>
-            <div className="flex items-center justify-between">
-              <span className="text-red-600 font-bold">{item * 500.0}đ</span>
-              <span className="text-xs text-muted-foreground line-through">{item * 750.0}đ</span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  </div>
-);
+
 
 export default function HomePage() {
   return (
@@ -161,7 +132,7 @@ export default function HomePage() {
         <div className="flex-1 space-y-6">
           <MainBanner />
           <GameCategories />
-          <AccountSection />
+          <AccountCategories />
         </div>
       </div>
 
