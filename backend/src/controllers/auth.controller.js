@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
-import User from "../models/User.model.js";
+import User from "../models/client/User.model.js";
 import jwt from "jsonwebtoken";
-import Session from "../models/Session.model.js";
+import Session from "../models/client/Session.model.js";
 import crypto from "crypto";
 import { sendVerificationEmail } from "../services/mailService.js";
 

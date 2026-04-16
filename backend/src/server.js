@@ -3,6 +3,7 @@ import { connectDB } from "./libs/db.config.js";
 import dotenv from "dotenv";
 import authRoute from "./routes/auth.route.js";
 import accountRoute from "./routes/account.route.js";
+import paymentRoute from "./routes/payment.route.js";
 
 // import userRoute from "./routes/user.route.js";
 import cookieParser from "cookie-parser";
@@ -30,7 +31,7 @@ app.use(
 app.use("/api/auth", authRoute);
 // app.use(protectedRoute);
 app.use("/api/accounts", accountRoute);
-// app.use("/api/users", userRoute);
+app.use("/api/payment", paymentRoute);
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
