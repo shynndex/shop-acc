@@ -3,7 +3,7 @@ import User from "../models/client/User.model.js";
 import jwt from "jsonwebtoken";
 import Session from "../models/client/Session.model.js";
 import crypto from "crypto";
-import { sendVerificationEmail } from "../services/mailService.js";
+import { sendVerificationEmail } from "../services/mail.service.js";
 
 const ACCESS_TOKEN_SECRET_TTL = "30m";
 

@@ -48,3 +48,17 @@ export interface Order {
   price:number;
   purchasedAt:string;
 }
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+  code?: string | number;
+}
+
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  totalPages: number;
+  currentPage: number;
+  totalItems: number;
+}
