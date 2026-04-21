@@ -7,7 +7,7 @@ import {
   ChevronRight,
   MessageCircle,
 } from "lucide-react";
-import { AccountCategories } from "@/components/sections/AccountCategories";
+import { AccountCategories } from "@/components/client/sections/AccountCategories";
 
 // Dữ liệu mẫu (nên move ra file constants/data sau này)
 const topUpData = [

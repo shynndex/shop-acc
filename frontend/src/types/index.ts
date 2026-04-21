@@ -41,12 +41,12 @@ export interface GameCategory {
 }
 
 export interface Order {
-  orderId:string;
-  accountId:string;
-  accountTitle:string;
-  credentials:Record<string,string>
-  price:number;
-  purchasedAt:string;
+  orderId: string;
+  accountId: string;
+  accountTitle: string;
+  credentials: Record<string, string>;
+  price: number;
+  purchasedAt: string;
 }
 
 export interface ApiResponse<T = any> {

@@ -6,6 +6,7 @@ import accountRoute from "./routes/account.route.js";
 import sseRoute from "./routes/sse.route.js";
 
 import paymentRoute from "./routes/payment.route.js";
+import adminAuthRoute from "./routes/admin/auth.route.js";
 
 // import userRoute from "./routes/user.route.js";
 import cookieParser from "cookie-parser";
@@ -36,6 +37,7 @@ app.use("/api/accounts", accountRoute);
 app.use("/api/payment", paymentRoute);
 app.use("/api/sse", sseRoute);
 app.use("/api/payment", paymentRoute);
+app.use("/api/admin/auth", adminAuthRoute);
 
 connectDB().then(() => {
   app.listen(PORT, () => {

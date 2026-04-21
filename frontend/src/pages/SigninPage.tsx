@@ -1,5 +1,4 @@
-import { GalleryVerticalEnd } from "lucide-react";
-import { LoginForm } from "@/components/login-form";
+import { LoginForm } from "@/components/client/login-form";
 export default function SignInPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center gap-6 p-6 md:p-10">

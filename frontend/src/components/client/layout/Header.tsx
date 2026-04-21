@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "../ui/button";
+import { Button } from "../../ui/button";
 import {
   Bell,
   CreditCard,
@@ -10,8 +10,8 @@ import {
   Search,
   User,
 } from "lucide-react";
-import { Input } from "../ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Input } from "../../ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar";
 import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
 import {
@@ -21,8 +21,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { Badge } from "../ui/badge";
+} from "../../ui/dropdown-menu";
+import { Badge } from "../../ui/badge";
 import DepositDialog from "../DepositDialog";
 
 const Header = () => {

@@ -9,8 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+} from "../ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
   AxeIcon,
   BadgeAlert,
@@ -23,8 +23,8 @@ import {
   RotateCcw,
   Smartphone,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../ui/select";
 import {
   Card,
   CardContent,
@@ -41,14 +41,14 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "./ui/card";
+} from "../ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldLegend,
-} from "./ui/field";
+} from "../ui/field";
 import {
   Item,
   ItemActions,
@@ -56,7 +56,7 @@ import {
   ItemDescription,
   ItemMedia,
   ItemTitle,
-} from "./ui/item";
+} from "../ui/item";
 import { depositService } from "@/services/depositService";
 import type { PaymentLinkData } from "@/types/deposit";
 import { formatVND } from "@/lib/utils";

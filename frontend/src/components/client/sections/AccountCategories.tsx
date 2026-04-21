@@ -4,14 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { GAME_CATEGORIES } from "@/config/categories";
 import type { CategoryItem, GameCategory } from "@/types";
+import viewAllGif from "@/assets/view-all.gif";
 
 //  Card con tái sử dụng
 const CategoryCard = ({
   cat,
-  gameSlug,
 }: {
   cat: CategoryItem;
-  gameSlug: string;
 }) => {
   const navigate = useNavigate();
 
@@ -52,11 +51,7 @@ const CategoryCard = ({
         </p>
 
         <div className="flex justify-center mt-5">
-          <img
-            src="../../../public/view-all.gif"
-            alt="Xem tất cả"
-            className=" cursor-pointer"
-          />
+          <img src={viewAllGif} alt="Xem tất cả" className=" cursor-pointer" />
         </div>
       </CardContent>
     </Card>
@@ -81,7 +76,7 @@ const GameSection = ({ game }: { game: GameCategory }) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
         {game.categories.map((cat) => (
-          <CategoryCard key={cat.id} cat={cat} gameSlug={game.gameSlug} />
+          <CategoryCard key={cat.id} cat={cat} />
         ))}
       </div>
 
