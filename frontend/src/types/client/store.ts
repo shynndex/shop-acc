@@ -1,11 +1,11 @@
-import type { User } from ".";
+import type { User } from "..";
 
 export interface AuthState {
   accessToken: string | null;
   user: User | null;
   loading: boolean;
 
-  signIn: (payload: { username: string; password: string }) => Promise<boolean>;
+  signIn: (payload: { email: string; password: string }) => Promise<boolean>;
 
   signUp: (payload: {
     username: string;

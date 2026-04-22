@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import type { Account } from "@/types";
-import type { AccountListResponse, GetAccountsParams } from "@/types/services";
+import type { AccountListResponse, GetAccountsParams } from "@/types/client/services";
 
 export const accountService = {
   /**

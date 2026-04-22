@@ -1,10 +1,10 @@
-import type { AuthResponse, SignInPayload } from "@/types/services";
-import api from "../lib/axios";
+import { api } from "@/lib/axios";
+import type { AuthResponse, SignInPayload } from "@/types/client/services";
 
 export const authService = {
   signIn: async (payload: SignInPayload): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>("/auth/sign-in", payload);
-    return response.data;
+    return response;
   },
 
   signUp: async (
@@ -21,7 +21,7 @@ export const authService = {
       firstName,
       lastName,
     });
-    return response.data;
+    return response;
   },
 
   signOut: async (): Promise<void> => {
@@ -32,7 +32,7 @@ export const authService = {
     const response = await api.post<{ message: string }>("/auth/verify-email", {
       token,
     });
-    return response.data;
+    return response;
   },
   resendVerify: async (email: string) => {
     const response = await api.post<{ message: string }>(
@@ -41,6 +41,6 @@ export const authService = {
         email,
       },
     );
-    return response.data;
+    return response;
   },
 };

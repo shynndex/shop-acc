@@ -1,13 +1,12 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { Suspense, lazy } from "react";
-import { clientRoutes } from "./routes/clientRoute";
-import { adminRoutes } from "./routes/adminRoute";
+import { Loader2 } from "lucide-react";
+import { AppRouter } from "./routes";
 
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const LoadingFallback = () => (
-  <div className="flex items-center justify-center h-screen text-gray-500">
-    Đang tải trang...
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
 
@@ -15,15 +14,9 @@ function App() {
   return (
     <>
       <Toaster richColors position="top-right" />
-      <BrowserRouter>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            {clientRoutes}
-            {adminRoutes}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <Suspense fallback={<LoadingFallback />}>
+        <AppRouter />
+      </Suspense>
     </>
   );
 }

@@ -16,9 +16,11 @@ export const clientRoutes = (
   <Route path="/" element={<AppLayout />}>
     <Route index element={<HomePage />} />
 
+    {/* Public routes */}
     <Route path="signin" element={<PublicRoute><SignInPage /></PublicRoute>} />
     <Route path="signup" element={<PublicRoute><SignUpPage /></PublicRoute>} />
 
+      
     <Route path="tai-khoan">
       <Route path=":categorySlug" element={<ShopPage />} />
       <Route path=":categorySlug/:id" element={<AccountDetailPage />} />

@@ -2,15 +2,34 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "sonner";
-import type { AuthState } from "../types/store";
+import type { AuthState } from "../types/client/store";
 import { authService } from "../services/authService";
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accessToken: null,
       user: null,
-      loading: false,
+      loading: true,
+
+      checkAuth: async () => {
+        const { accessToken } = get();
+
+        if (!accessToken) {
+          set({ loading: false, user: null });
+          return;
+        }
+
+        // nếu có token thì gọi về backend để xác thực token
+        try {
+          const { data } = await authService.checkAuth();
+
+          set({ user: data.user, loading: false });
+        } catch (error) {
+          console.log("Có lỗi xảy ra ở checkAuth", error);
+          set({ loading: false, user: null });
+        }
+      },
 
       setAccessToken: (token) => set({ accessToken: token }),
 
@@ -19,10 +38,10 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...data } : null,
         })),
 
-      signIn: async ({ username, password }) => {
+      signIn: async ({ email, password }) => {
         try {
           set({ loading: true });
-          const response = await authService.signIn({ username, password });
+          const response = await authService.signIn({ email, password });
 
           set({
             accessToken: response.accessToken,

@@ -62,3 +62,15 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   currentPage: number;
   totalItems: number;
 }
+
+export type AdminRole = "super_admin" | "admin";
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  role: AdminRole;
+  avatar?: string;
+  isActive: boolean;
+  lastLogin?: string;
+}

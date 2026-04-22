@@ -1,7 +1,7 @@
-import type { Account } from ".";
+import type { Account } from "..";
 
 export interface SignInPayload {
-  username: string;
+  email: string;
   password: string;
 }
 

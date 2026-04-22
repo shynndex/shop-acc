@@ -35,17 +35,17 @@ export function LoginForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const username = formData.username.trim();
+    const email = formData.username.trim();
     const password = formData.password.trim();
 
-    if (!username || !password) {
-      toast.error("Vui lòng nhập đầy đủ tên tài khoản và mật khẩu");
+    if (!email || !password) {
+      toast.error("Vui lòng nhập đầy đủ email và mật khẩu");
       return;
     }
 
     try {
       const success = await signIn({
-        username,
+        email,
         password,
       });
 
@@ -82,11 +82,11 @@ export function LoginForm({
                 </p>
               </div>
               <Field>
-                <FieldLabel>Tên tài khoản</FieldLabel>
+                <FieldLabel>Email</FieldLabel>
                 <Input
                   id="username"
-                  type="text"
-                  placeholder="Tên tài khoản"
+                  type="email"
+                  placeholder="Email"
                   className="border-blue-700 focus-visible:ring-blue-600"
                   required
                   disabled={loading}
