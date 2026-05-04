@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import crypto from "crypto";
+import { encryptPin } from "../../../utils/encryptPin";
 
 const CardDepositSchema = new mongoose.Schema(
   {
@@ -21,7 +23,6 @@ const CardDepositSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      // Production: Nên hash hoặc encrypt field này trước khi lưu
     },
     declaredValue: {
       type: Number,
@@ -77,10 +78,17 @@ CardDepositSchema.virtual("formattedDate").get(function () {
   return this.createdAt?.toLocaleString("vi-VN");
 });
 
-cardDepositSchema.index({ user: 1, status: 1, createdAt: -1 });
+CardDepositSchema.pre("save", function (next) {
+  if (this.isModified("pin")) {
+    this.pin = encryptPin(this.pin);
+  }
+  next();
+});
+
+CardDepositSchema.index({ user: 1, status: 1, createdAt: -1 });
 
 //  Index chống trùng thẻ đang xử lý hoặc đã thành công
-cardDepositSchema.index(
+CardDepositSchema.index(
   { serial: 1, pin: 1 },
   {
     unique: true,

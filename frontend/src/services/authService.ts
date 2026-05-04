@@ -1,5 +1,10 @@
-import { api } from "@/lib/axios";
-import type { AuthResponse, SignInPayload } from "@/types/client/services";
+import { api } from "@/lib/clientAxios";
+import type {
+  AuthResponse,
+  CheckAuthResponse,
+  MeResponse,
+  SignInPayload,
+} from "@/types/client/services";
 
 export const authService = {
   signIn: async (payload: SignInPayload): Promise<AuthResponse> => {
@@ -21,6 +26,11 @@ export const authService = {
       firstName,
       lastName,
     });
+    return response;
+  },
+
+  checkAuth: async (): Promise<CheckAuthResponse> => {
+    const response = await api.get<MeResponse>("/auth/me");
     return response;
   },
 

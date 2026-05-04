@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import { generateId } from "../libs/generateId.js";
 import payOS from "../libs/payos.config.js";
 import BankAccount from "../models/admin/BankAccount.js";
-import BankDeposit from "../models/BankDeposit.model.js";
 import User from "../models/client/User.model.js";
 import {
   chargeCard,
@@ -13,6 +12,8 @@ import {
 } from "../services/cardProvider.service.js";
 import CardDeposit from "../models/CardDeposit.model.js";
 import { hasSSEClient, sendSSE } from "../utils/sse.js";
+import { encryptPin } from "../utils/encryptPin.js";
+import BankDeposit from "../models/client/deposits/BankDeposit.model.js";
 
 export const createDepositInfo = async (req, res) => {
   try {
@@ -61,11 +62,11 @@ export const createDepositInfo = async (req, res) => {
       user: req.user.id,
       bank: activeBank._id, // Lưu bank nào đang xử lý
       referenceCode,
+      expectedAmount: parseInt(amount),
       status: "PENDING",
       payosOrderId: paymentLinkResponse.id, // ID giao dịch bên PayOS
       orderCode,
       amount: 0,
-      status: "PENDING",
     });
 
     res.json({
@@ -113,9 +114,9 @@ export const payosWebhook = async (req, res) => {
         .json({ code: "00", desc: "Order not found or already processed" });
     }
 
-    if (data.amount !== deposit.amount) {
+    if (data.amount !== deposit.expectedAmount) {
       console.warn(
-        `Amount mismatch: Expected ${deposit.amount}, Got ${data.amount}`,
+        `Amount mismatch: Expected ${deposit.expectedAmount}, Got ${data.amount}`,
       );
       deposit.status = "FAILED";
       await deposit.save();
@@ -127,12 +128,13 @@ export const payosWebhook = async (req, res) => {
 
     try {
       deposit.status = "PAID";
+      deposit.amount = data.amount;
       deposit.transactionData = data;
       await deposit.save({ session });
 
       await User.findByIdAndUpdate(
         deposit.user,
-        { $inc: { balance: deposit.amount } },
+        { $inc: { balance: data.amount } },
         { session },
       );
 
@@ -181,7 +183,7 @@ export const submitCardDeposit = async (req, res) => {
 
     const existing = await CardDeposit.findOne({
       serial: serial.toUpperCase().trim(),
-      pin: pin.trim(),
+      pin: encryptPin(pin.trim()),
       status: { $in: ["PENDING", "SUCCESS"] },
     });
 
@@ -200,7 +202,7 @@ export const submitCardDeposit = async (req, res) => {
       provider: provider.toUpperCase(),
       declaredValue: parseInt(amount),
       serial: serial.toUpperCase().trim(),
-      pin: pin.trim(),
+      pin: encryptPin(pin.trim()),
       status: "PENDING",
     });
 
@@ -237,7 +239,7 @@ export const cardWebhook = async (req, res) => {
       console.warn("[Card Webhook] Invalid signature");
       return res
         .status(400)
-        .json({ status: "error", message: "Invalid signature" });
+        .json({ success: false, message: "Invalid signature" });
     }
 
     const parsed = parseWebhookData(body);
@@ -252,7 +254,7 @@ export const cardWebhook = async (req, res) => {
         serial: body.serial,
         request_id: body.request_id,
       });
-      return res.status(200).json({ status: "success", message: "ignored" });
+      return res.status(200).json({ success: true, message: "ignored" });
     }
 
     // Bỏ qua nếu đã xử lý
@@ -263,7 +265,7 @@ export const cardWebhook = async (req, res) => {
       });
       return res
         .status(200)
-        .json({ status: "success", message: "already processed" });
+        .json({ success: true, message: "already processed" });
     }
 
     const session = await mongoose.startSession();
@@ -306,7 +308,7 @@ export const cardWebhook = async (req, res) => {
         console.log(`[Card Webhook] SSE sent to user ${userId}`);
       }
 
-      return res.status(200).json({ status: "success", message: "processed" });
+      return res.status(200).json({ success: true, message: "processed" });
     } catch (txError) {
       await session.abortTransaction();
       console.error("[Card Webhook Transaction Error]:", txError);

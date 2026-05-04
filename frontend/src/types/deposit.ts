@@ -4,7 +4,8 @@ import type { ApiResponse } from ".";
 
 export type DepositStatus =
   | "PENDING"
-  | "PAID"
+  | "PAID" // Bank
+  | "SUCCESS" // Card
   | "FAILED"
   | "CANCELLED"
   | "EXPIRED";
@@ -24,16 +25,12 @@ export interface PaymentLinkRequest {
 
 export interface PaymentLinkData {
   bankName: string;
-  depositId: string;
-  orderCode: number;
-  amount: number;
-  qrCode: string; // Base64 string hoặc URL
-  checkoutUrl: string;
+  qrImage: string;
   accountName: string;
   accountNumber: string;
-  description: string;
-  status: DepositStatus;
-  expiredAt?: string;
+  referenceCode: string;
+  minDeposit: number;
+  instruction: string;
 }
 
 export interface DepositStatusData {
@@ -63,7 +60,7 @@ export interface DepositDialogState {
   paymentStep: "input" | "waiting" | "success" | "error";
   bankAmount: string;
   paymentInfo: PaymentLinkData | null;
-  depositId: string | null;
+  referenceCode: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -71,7 +68,7 @@ export interface DepositDialogState {
 export interface DepositSSEData {
   type: "bank" | "card";
   depositId: string;
-  status: "PENDING" | "PAID" | "SUCCESS" | "FAILED";
+  status: DepositStatus;
   amount: number;
   message: string;
   timestamp: string;

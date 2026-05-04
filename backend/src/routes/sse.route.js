@@ -1,4 +1,6 @@
-import { protectedRoute } from "../middlewares/auth.middleware";
+import { protectedRoute } from "../middlewares/auth.middleware.js";
+import express from "express";
+import { addSSEClient } from "../utils/sse.js";
 
 const router = express.Router();
 

@@ -1,4 +1,4 @@
-import type { AdminUser } from "..";
+import type { AdminUser } from "@/types/index";
 
 export interface LoginRequest {
   email: string;
@@ -11,11 +11,8 @@ export interface LoginResponse {
   message?: string;
 }
 
-
-
 export interface GetMeResponse {
   success: boolean;
   admin: AdminUser;
   message?: string;
 }
-

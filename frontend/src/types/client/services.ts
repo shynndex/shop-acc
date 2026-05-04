@@ -1,4 +1,4 @@
-import type { Account } from "..";
+import type { Account, User } from "@/types/index";
 
 export interface SignInPayload {
   email: string;
@@ -24,7 +24,7 @@ export interface AuthResponse {
     balance?: number;
     createdAt: string;
   };
-  message: string;
+  message?: string;
 }
 
 export interface AccountListResponse {
@@ -44,3 +44,6 @@ export interface GetAccountsParams {
   maxPrice?: number;
   sortBy?: "price_asc" | "price_desc" | "newest";
 }
+
+//  Type cho checkAuth: có thể trả null nếu chưa login
+export type CheckAuthResponse = User | null;

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const bankAccountSchema = new mongoose.Schema(
+const BankAccountSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true }, // "MB Bank", "Vietcombank"
     accountNumber: { type: String, required: true, unique: true },
@@ -13,15 +13,24 @@ const bankAccountSchema = new mongoose.Schema(
   },
 );
 
-bankAccountSchema.pre("save", async function (next) {
+BankAccountSchema.pre("save", async function (next) {
   if (this.isActive) {
     await this.constructor.updateMany(
-      { _id: { $ne: this._id } },
+      { _id: { $ne: this._id }, isActive: true },
       { $set: { isActive: false } },
     );
   }
   next();
 });
 
-const BankAccount = mongoose.model("BankAccount", bankAccountSchema);
+BankAccountSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    ret.id = ret._id.toString();
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  },
+});
+
+const BankAccount = mongoose.model("BankAccount", BankAccountSchema);
 export default BankAccount;

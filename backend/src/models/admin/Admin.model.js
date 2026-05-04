@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const adminSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true, trim: true },
-    email: { type: String, required: true, select: false, lowercase: true },
+    email: { type: String, required: true, lowercase: true },
     password: { type: String, required: true, select: false },
     role: { type: String, enum: ["admin", "super_admin"], default: "admin" },
     isActive: { type: Boolean, default: true },
@@ -22,7 +22,7 @@ adminSchema.pre("save", async function (next) {
   next();
 });
 
-adminSchema.method.matchPassword = async function (entered) {
+adminSchema.methods.matchPassword = async function (entered) {
   return await bcrypt.compare(entered, this.password);
 };
 

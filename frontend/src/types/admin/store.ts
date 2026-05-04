@@ -1,5 +1,5 @@
 import type { AdminUser } from "..";
-import type { GetMeResponse, LoginResponse,  } from "./services";
+import type { GetMeResponse, LoginResponse} from "./services";
 
 export interface AuthState {
   admin: AdminUser | null;

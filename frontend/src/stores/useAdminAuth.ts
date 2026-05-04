@@ -8,7 +8,7 @@ export const useAdminAuth = create<AuthState>()(
   persist(
     (set, get) => ({
       admin: null,
-      loading: true,
+      loading: false,
       error: null,
       isAuthenticated: false,
 

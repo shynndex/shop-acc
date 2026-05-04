@@ -60,5 +60,10 @@ export const logout = (req, res) => {
 };
 
 export const getMe = (req, res) => {
+  if (!req.admin) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Người dùng không tồn tại" });
+  }
   res.json({ success: true, admin: req.admin });
 };

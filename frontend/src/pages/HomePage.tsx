@@ -1,25 +1,43 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Trophy,
-  Star,
-  ChevronRight,
-  MessageCircle,
-} from "lucide-react";
+import { Trophy, Star, ChevronRight, MessageCircle } from "lucide-react";
 import { AccountCategories } from "@/components/client/sections/AccountCategories";
 
 // Dữ liệu mẫu (nên move ra file constants/data sau này)
 const topUpData = [
   { id: 1, username: "****ep", amount: "7.000.000đ", rank: 1, isGold: true },
-  { id: 2, username: "****59075078...", amount: "4.400.000đ", rank: 2, isGold: true },
-  { id: 3, username: "****49783686...", amount: "2.700.000đ", rank: 3, isGold: true },
+  {
+    id: 2,
+    username: "****59075078...",
+    amount: "4.400.000đ",
+    rank: 2,
+    isGold: true,
+  },
+  {
+    id: 3,
+    username: "****49783686...",
+    amount: "2.700.000đ",
+    rank: 3,
+    isGold: true,
+  },
   { id: 4, username: "****404", amount: "2.250.000đ", rank: 4, isGold: false },
-  { id: 5, username: "****61890934...", amount: "2.240.000đ", rank: 5, isGold: false },
+  {
+    id: 5,
+    username: "****61890934...",
+    amount: "2.240.000đ",
+    rank: 5,
+    isGold: false,
+  },
 ];
 
 const gameCategories = [
-  { id: 1, name: "THU ACC THANH LÝ ALL...", icon: "💰", color: "bg-yellow-100" },
+  {
+    id: 1,
+    name: "THU ACC THANH LÝ ALL...",
+    icon: "💰",
+    color: "bg-yellow-100",
+  },
   { id: 2, name: "ACC LIÊN QUÂN SALE", icon: "⚔️", color: "bg-red-100" },
   { id: 3, name: "ACC BLOX FRUITS GIÁ RẺ", icon: "🍇", color: "bg-purple-100" },
   { id: 4, name: "ACC FREE FIRE GIÁ RẺ", icon: "🔥", color: "bg-orange-100" },
@@ -51,11 +69,15 @@ const TopUpSidebar = () => (
               )}
               <span className="font-medium text-sm">{item.username}</span>
             </div>
-            <span className="font-semibold text-sm text-blue-600">{item.amount}</span>
+            <span className="font-semibold text-sm text-blue-600">
+              {item.amount}
+            </span>
           </div>
         ))}
       </div>
-      <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700">Nạp thẻ ngay</Button>
+      <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700">
+        Nạp thẻ ngay
+      </Button>
     </CardContent>
   </Card>
 );
@@ -85,10 +107,18 @@ const MainBanner = () => (
       </div>
     </div>
     {/* Navigation Arrows */}
-    <Button size="icon" variant="ghost" className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white">
+    <Button
+      size="icon"
+      variant="ghost"
+      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white"
+    >
       <ChevronRight className="h-6 w-6 rotate-180" />
     </Button>
-    <Button size="icon" variant="ghost" className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white">
+    <Button
+      size="icon"
+      variant="ghost"
+      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white"
+    >
       <ChevronRight className="h-6 w-6" />
     </Button>
   </Card>
@@ -98,9 +128,14 @@ const MainBanner = () => (
 const GameCategories = () => (
   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
     {gameCategories.map((game) => (
-      <Card key={game.id} className="cursor-pointer hover:shadow-lg transition-shadow group">
+      <Card
+        key={game.id}
+        className="cursor-pointer hover:shadow-lg transition-shadow group"
+      >
         <CardContent className="p-4 text-center">
-          <div className={`${game.color} w-16 h-16 mx-auto mb-3 rounded-lg flex items-center justify-center text-3xl group-hover:scale-110 transition-transform`}>
+          <div
+            className={`${game.color} w-16 h-16 mx-auto mb-3 rounded-lg flex items-center justify-center text-3xl group-hover:scale-110 transition-transform`}
+          >
             {game.icon}
           </div>
           <h3 className="font-semibold text-sm line-clamp-2">{game.name}</h3>
@@ -109,8 +144,6 @@ const GameCategories = () => (
     ))}
   </div>
 );
-
-
 
 export default function HomePage() {
   return (

@@ -1,5 +1,9 @@
 import type { ApiResponse } from "@/types";
-import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+} from "axios";
 
 export interface ApiRequestConfig extends AxiosRequestConfig {
   skipAuth?: boolean; // Option để bỏ qua gắn token
@@ -21,7 +25,17 @@ const apiClient: AxiosInstance = axios.create({
 // Interceptor: Tự động gắn Token vào mọi request
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token"); // Hoặc lấy từ Zustand/Auth store
+    const rawStore = localStorage.getItem("auth-storage");
+    let token: string | null = null;
+    if (rawStore) {
+      try {
+        const parsed = JSON.parse(rawStore);
+        // Zustand persist lưu: { state: { accessToken: "...", ... }, version: 0 }
+        token = parsed.state?.accessToken || null;
+      } catch (error) {
+        // Nếu parse lỗi, bỏ qua
+      }
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -35,16 +49,20 @@ apiClient.interceptors.response.use(
   (response) => {
     const res = response.data; // ApiResponse<T>
 
-    if (!res.success) {
-      return Promise.reject(res);
+    if (res?.success !== undefined) {
+      if (!res.success) {
+        return Promise.reject(res);
+      }
+      // Nếu có field "data", unwrap; ngược lại trả toàn bộ res (cho case chỉ có message)
+      return res.data !== undefined ? res.data : res;
     }
-
-    return res.data;
+    // Với response không có "success" (account list, webhooks...), trả nguyên vẹn
+    return res;
   },
   (error) => {
     if (error.response?.status === 401) {
       // Xử lý lỗi 401 Token hết hạn → Đăng xuất
-      localStorage.removeItem("token");
+      localStorage.removeItem("auth-storage");
       window.location.href = "/login";
       return Promise.reject(error);
     }
@@ -82,5 +100,3 @@ export const api = {
   delete: <T = any>(url: string, config?: ApiRequestConfig): Promise<T> =>
     apiClient.delete(url, config),
 };
-
-export default apiClient;

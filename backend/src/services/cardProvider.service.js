@@ -96,7 +96,11 @@ export const chargeCard = async ({ provider, serial, pin, amount }) => {
       },
     };
   } catch (error) {
-    console.error("Error occurred while charging card:", error);
+    console.error("Error occurred while charging card:", {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+    });
     return {
       success: false,
       code: "99",
@@ -167,7 +171,7 @@ let feeCache = {
 /**
  * Gọi API lấy danh sách fee từ provider
  */
-const getFeeCache = async () => {
+const fetchFeeFromAPI = async () => {
   try {
     const response = await axios.get(`${CONFIG.baseUrl}chargingws/v2/getfee`, {
       params: {

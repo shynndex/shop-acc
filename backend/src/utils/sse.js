@@ -1,5 +1,5 @@
 // Map lưu trữ các kết nối: userId -> Response object
-const client = new Map();
+const clients = new Map();
 
 /**
  * Thêm client vào danh sách lắng nghe
@@ -75,7 +75,7 @@ export const sendSSE = (userId, eventName, data) => {
  * Gửi event tới tất cả user đang kết nối (dùng cho broadcast)
  */
 
-export const broadcaseSSE = (eventName, data) => {
+export const broadcastSSE = (eventName, data) => {
   let sendCount = 0;
   for (const [userId, client] of clients.entries()) {
     if (!client.writableEnded) {
@@ -107,6 +107,6 @@ export const hasSSEClient = (userId) => {
  */
 
 export const getSSEStats = () => ({
-  totalClients: client.size,
+  totalClients: clients.size,
   clientIds: Array.from(clients.keys()),
 });

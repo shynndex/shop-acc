@@ -53,22 +53,30 @@ export const signIn = async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.status(400).json({ message: "Thiếu dữ liệu" });
+      return res.status(400).json({ success: false, message: "Thiếu dữ liệu" });
     }
 
     const user = await User.findOne({ username }).select("+hashedPassword");
 
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Sai tên đăng nhập hoặc password" });
+    }
+
     if (!user.isVerified) {
       return res.status(403).json({
+        success: false,
         message:
           "Email chưa được xác thực. Vui lòng kiểm tra hộp thư hoặc yêu cầu gửi lại link.",
       });
     }
 
-    if (!user) {
+    const passwordCorrect = await User.comparePassword(password);
+    if (!passwordCorrect) {
       return res
         .status(401)
-        .json({ message: "Sai tên đăng nhập hoặc password" });
+        .json({ success: false, message: "Sai tên đăng nhập hoặc password" });
     }
 
     const userData = {
@@ -108,13 +116,13 @@ export const signIn = async (req, res) => {
       maxAge: REFRESH_TOKEN_TTL,
     });
     return res.status(200).json({
+      success: true,
       message: `User ${user.displayName} đã đăng nhập thành công`,
-      accessToken,
-      user: userData,
+      data: { accessToken, user: userData },
     });
   } catch (error) {
     console.log("Lỗi khi gọi signIn", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };
 
@@ -130,7 +138,7 @@ export const signOut = async (req, res) => {
     return res.sendStatus(204);
   } catch (error) {
     console.log("Lỗi khi gọi signOut", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };
 
@@ -138,20 +146,20 @@ export const refreshToken = async (req, res) => {
   try {
     const oldRefreshToken = req.cookies?.refreshToken;
     if (!oldRefreshToken) {
-      return res.status(401).json({ message: "Không tìm thấy token làm mới" });
+      return res.status(401).json({ success: false, message: "Không tìm thấy token làm mới" });
     }
 
     const session = await Session.findOne({ refreshToken: oldRefreshToken });
     if (!session) {
       //  Token không tồn tại → có thể bị tấn công → xóa cookie để bảo vệ
       res.clearCookie("refreshToken", { path: "/" });
-      return res.status(401).json({ message: "Token làm mới không hợp lệ" });
+      return res.status(401).json({ success: false, message: "Token làm mới không hợp lệ" });
     }
 
     if (session.expiresAt < new Date()) {
       await Session.deleteMany({ _id: session._id }); // dọn session hết hạn
       res.clearCookie("refreshToken", { path: "/" });
-      return res.status(401).json({ message: "Token làm mới đã hết hạn" });
+      return res.status(401).json({ success: false, message: "Token làm mới đã hết hạn" });
     }
 
     const newRefreshToken = crypto.randomBytes(64).toString("hex");
@@ -177,7 +185,7 @@ export const refreshToken = async (req, res) => {
     return res.json({ accessToken });
   } catch (error) {
     console.log("Lỗi khi gọi refreshToken", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };
 
@@ -186,7 +194,7 @@ export const verifyEmail = async (req, res) => {
     const { token } = req.query;
 
     if (!token)
-      return res.status(400).json({ message: "Token xác minh không hợp lệ" });
+      return res.status(400).json({ success: false, message: "Token xác minh không hợp lệ" });
 
     const user = await User.findOne({
       verificationToken: token,
@@ -196,7 +204,7 @@ export const verifyEmail = async (req, res) => {
     if (!user)
       return res
         .status(400)
-        .json({ message: "Token xác minh không hợp lệ hoặc đã hết hạn" });
+        .json({ success: false, message: "Token xác minh không hợp lệ hoặc đã hết hạn" });
 
     user.isVerified = true;
     user.verificationToken = undefined;
@@ -204,25 +212,26 @@ export const verifyEmail = async (req, res) => {
     await user.save();
 
     return res.status(200).json({
+      success: true,
       message: "Email đã được xác minh thành công! Bạn có thể đăng nhập.",
     });
   } catch (error) {
     console.log("Lỗi khi gọi verifyEmail", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };
 
 export const resendVerification = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email không hợp lệ" });
+    if (!email) return res.status(400).json({ success: false, message: "Email không hợp lệ" });
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "Người dùng không tồn tại" });
+      return res.status(404).json({ success: false, message: "Người dùng không tồn tại" });
     }
     if (user.isVerified) {
-      return res.status(400).json({ message: "Tài khoản đã được xác minh" });
+      return res.status(400).json({ success: false, message: "Tài khoản đã được xác minh" });
     }
 
     const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -241,9 +250,28 @@ export const resendVerification = async (req, res) => {
 
     return res
       .status(200)
-      .json({ message: "Đã gửi lại link xác thực. Vui lòng kiểm tra email." });
+      .json({ success: true, message: "Đã gửi lại link xác thực. Vui lòng kiểm tra email." });
   } catch (error) {
     console.log("Lỗi khi gọi resendVerification", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
+  }
+};
+
+export const getMe = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Người dùng không tồn tại" });
+    }
+
+    const user = await User.findOne({ _id: req.user._id });
+    return res.json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Lỗi khi gọi getMe", error);
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };

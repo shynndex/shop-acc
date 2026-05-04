@@ -1,4 +1,4 @@
-import api from "@/lib/axios";
+import { api } from "@/lib/clientAxios";
 import type { Account } from "@/types";
 import type { AccountListResponse, GetAccountsParams } from "@/types/client/services";
 

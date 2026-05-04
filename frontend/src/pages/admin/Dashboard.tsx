@@ -13,15 +13,18 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useAdminAuth } from "@/stores/useAdminAuth";
 import { AlertTriangle, CreditCard, TrendingUp, Users } from "lucide-react";
 import { useEffect } from "react";
 
 export default function Dashboard() {
-  const { admin, checkAuth } = useAdminAuth();
+  const { admin, isAuthenticated, checkAuth } = useAdminAuth();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    if (!admin && !isAuthenticated) {
+      checkAuth();
+    }
+  }, [checkAuth, admin, isAuthenticated]);
 
   //mocks
   const stats = [
