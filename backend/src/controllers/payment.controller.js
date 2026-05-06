@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import { generateId } from "../libs/generateId.js";
+import { generateId } from "../utils/generateId.js";
 import payOS from "../libs/payos.config.js";
-import BankAccount from "../models/admin/BankAccount.js";
 import User from "../models/client/User.model.js";
 import {
   chargeCard,
@@ -10,10 +9,10 @@ import {
   parseWebhookData,
   verifyWebhookSignature,
 } from "../services/cardProvider.service.js";
-import CardDeposit from "../models/CardDeposit.model.js";
 import { hasSSEClient, sendSSE } from "../utils/sse.js";
 import { encryptPin } from "../utils/encryptPin.js";
 import BankDeposit from "../models/client/deposits/BankDeposit.model.js";
+import BankAccount from "../models/admin/BankAccount.model.js";
 
 export const createDepositInfo = async (req, res) => {
   try {
@@ -341,5 +340,122 @@ export const calculateFee = async (req, res) => {
     return res
       .status(500)
       .json({ status: "error", message: "Internal server error" });
+  }
+};
+
+export const getActiveBank = async (req, res) => {
+  try {
+    const banks = await BankAccount.findOne({ isActive: true }).select(
+      "-__v -createdAt -updatedAt",
+    );
+    res.json({
+      success: true,
+      data: banks
+        ? {
+            _id: banks._id,
+            name: banks.name,
+            accountNumber: banks.accountNumber,
+            accountName: bank.accountName,
+            qrImageUrl: bank.qrImageUrl,
+          }
+        : null,
+    });
+  } catch (error) {
+    console.error(
+      "Lỗi khi lấy thông tin ngân hàng hoạt động getActiveBank:",
+      error,
+    );
+    res.status(500).json({ success: false, message: "Lỗi hệ thống" });
+  }
+};
+
+export const getDepositHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10, type = "all" } = req.query; // type: 'bank' | 'card' | 'all'
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const bankQuery =
+      type !== "card"
+        ? BankDeposit.find({ user: userId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum)
+            .populate("bank", "name accountNumber")
+        : Promise.resolve([]);
+
+    const cardQuery =
+      type !== "bank"
+        ? CardDeposit.find({ user: userId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum)
+        : Promise.resolve([]);
+
+    const bankCount =
+      type !== "card"
+        ? BankDeposit.countDocuments({ user: userId })
+        : Promise.resolve(0);
+
+    const cardCount =
+      type !== "bank"
+        ? CardDeposit.countDocuments({ user: userId })
+        : Promise.resolve(0);
+
+    const [bankDeposits, cardDeposits, bankTotal, cardTotal] =
+      await Promise.all([bankQuery, cardQuery, bankCount, cardCount]);
+
+    //Format data
+    const formatBankDeposit = (doc) => ({
+      _id: doc._id,
+      type: "bank",
+      amount: doc.amount,
+      expectedAmount: doc.expectedAmount,
+      status: doc.status,
+      referenceCode: doc.referenceCode,
+      bankName: doc.bank?.name || "Unknown",
+      accountNumber: doc.bank?.accountNumber || "N/A",
+      createdAt: doc.createdAt,
+      paidAt: doc.transactionData?.paidAt || null,
+    });
+
+    const formatCardDeposit = (doc) => ({
+      _id: doc._id,
+      type: "card",
+      amount: doc.amount,
+      declaredValue: doc.declaredValue,
+      status: doc.status,
+      provider: doc.provider,
+      serial: doc.serial
+        ? "*".repeat(doc.serial.length - 4) + doc.serial.slice(-4)
+        : "****",
+      createdAt: doc.createdAt,
+      isAmountMismatch: doc.isAmountMismatch,
+    });
+
+    let allDeposit = [
+      ...bankDeposits.map(formatBankDeposit), // cách rút gọn
+      ...cardDeposits.map(formatCardDeposit),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const totalItems = bankTotal + cardTotal;
+    const paginatedDeposits = allDeposit.slice(0, limitNum);
+    const totalPages = Math.ceil(totalItems / limitNum);
+
+    res.json({
+      success:true,
+      data: {
+        deposits:paginatedDeposits,
+        totalPages,
+        currentPages:pageNum,
+        totalItems,
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy lịch sử nạp tiền getDepositHistory:", error);
+    res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };

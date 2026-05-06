@@ -1,5 +1,5 @@
 import type { AdminUser } from "..";
-import type { GetMeResponse, LoginResponse} from "./services";
+import type { LoginRequest } from "./services";
 
 export interface AuthState {
   admin: AdminUser | null;
@@ -7,13 +7,9 @@ export interface AuthState {
   error: string | null;
   isAuthenticated: boolean;
 
-  login: (credentials: {
-    email: string;
-    password: string;
-  }) => Promise<LoginResponse>;
+  login: (credentials: LoginRequest) => Promise<AdminUser>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<GetMeResponse | null>;
+  checkAuth: () => Promise<AdminUser | null>;
   clearError: () => void;
   updateAdmin: (data: Partial<AdminUser>) => void;
 }
-  

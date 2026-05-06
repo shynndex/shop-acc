@@ -13,9 +13,12 @@ export const depositService = {
    * Tạo Payment Link PayOS
    * @param amount - Số tiền cần nạp (VNĐ)
    */
-  createPaymentQR: (amount: number) => {
+  createPaymentQR: async (amount: number) => {
     const payload: PaymentLinkRequest = { amount };
-    return api.post<PaymentLinkData>("/payment/create-payment", payload);
+    return await api.post<PaymentLinkData>(
+      "/payment/create-payment/bank",
+      payload,
+    );
   },
 
   /**
@@ -44,10 +47,9 @@ export const depositService = {
     telco: string,
     amount: number,
   ): Promise<FeeCalculationResponse> => {
-    const res = await api.get("/payment/calculate-fee", {
+    return await api.get<FeeCalculationResponse>("/payment/calculate-fee", {
       params: { telco: telco.toUpperCase(), amount },
     });
-    return res.data;
   },
 
   /**
@@ -57,13 +59,12 @@ export const depositService = {
   submitCardDeposit: async (
     data: CardDepositRequest,
   ): Promise<CardDepositResponse> => {
-    const res = await api.post("/payment/create-payment/card", {
+    return await api.post<CardDepositResponse>("/payment/create-payment/card", {
       provider: data.provider,
       amount: data.amount,
       serial: data.serial,
       pin: data.pin,
     });
-    return res.data;
   },
 
   // to do

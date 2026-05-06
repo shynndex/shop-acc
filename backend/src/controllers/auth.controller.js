@@ -51,17 +51,17 @@ export const signUp = async (req, res) => {
 
 export const signIn = async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
+    const { email, password } = req.body;
+    if (!email || !password) {
       return res.status(400).json({ success: false, message: "Thiếu dữ liệu" });
     }
 
-    const user = await User.findOne({ username }).select("+hashedPassword");
+    const user = await User.findOne({ email }).select("+hashedPassword");
 
     if (!user) {
       return res
         .status(401)
-        .json({ success: false, message: "Sai tên đăng nhập hoặc password" });
+        .json({ success: false, message: "Sai email hoặc password" });
     }
 
     if (!user.isVerified) {
@@ -70,13 +70,6 @@ export const signIn = async (req, res) => {
         message:
           "Email chưa được xác thực. Vui lòng kiểm tra hộp thư hoặc yêu cầu gửi lại link.",
       });
-    }
-
-    const passwordCorrect = await User.comparePassword(password);
-    if (!passwordCorrect) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Sai tên đăng nhập hoặc password" });
     }
 
     const userData = {
@@ -94,7 +87,7 @@ export const signIn = async (req, res) => {
     if (!passwordCorrect) {
       return res
         .status(401)
-        .json({ message: "Sai tên đăng nhập hoặc password" });
+        .json({ message: "Sai email hoặc password" });
     }
     const accessToken = jwt.sign(
       { userId: user._id },

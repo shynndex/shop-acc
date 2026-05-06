@@ -8,11 +8,11 @@ import userRoute from "./routes/user.route.js";
 
 import paymentRoute from "./routes/payment.route.js";
 import adminAuthRoute from "./routes/admin/auth.route.js";
+import adminAccountRoute from "./routes/admin/account.route.js";
 
 // import userRoute from "./routes/user.route.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { protectedRoute } from "./middlewares/auth.middleware.js";
 dotenv.config();
 
 const app = express();
@@ -39,6 +39,7 @@ app.use("/api/user", userRoute);
 app.use("/api/payment", paymentRoute);
 app.use("/api/sse", sseRoute);
 app.use("/api/admin/auth", adminAuthRoute);
+app.use("/api/admin/accounts", adminAccountRoute);
 
 connectDB()
   .then(() => {

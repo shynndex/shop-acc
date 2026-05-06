@@ -34,10 +34,7 @@ const accountSchema = new mongoose.Schema(
       username: { type: String, required: true },
       password: { type: String, required: true },
     },
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Nếu sau này làm marketplace (user bán cho user)
-    },
+    
   },
   { timestamps: true },
 );

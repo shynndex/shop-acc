@@ -13,7 +13,7 @@ export interface ApiRequestConfig extends AxiosRequestConfig {
 export const adminApi: AxiosInstance = axios.create({
   baseURL:
     import.meta.env.VITE_ADMIN_API_URL || "http://localhost:5001/api/admin",
-  withCredentials: true, // 
+  withCredentials: true, //
   headers: { "Content-Type": "application/json" },
   timeout: 30000,
 });

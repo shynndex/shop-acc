@@ -5,6 +5,7 @@ import {
   logout,
 } from "../../controllers/admin/auth.controller.js";
 import { adminProtect } from "../../middlewares/admin/auth.middleware.js";
+import cookieParser from "cookie-parser";
 
 const router = express.Router();
 

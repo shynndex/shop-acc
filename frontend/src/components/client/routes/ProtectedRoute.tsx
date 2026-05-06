@@ -10,7 +10,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!accessToken && !user && !loading) {
       checkAuth();
     }
-  }, [accessToken, user, loading, checkAuth]);
+  }, [accessToken, user, loading]);
 
   if (loading) {
     return (

@@ -1,8 +1,8 @@
 import { api } from "@/lib/clientAxios";
+import type { User } from "@/types";
 import type {
   AuthResponse,
   CheckAuthResponse,
-  MeResponse,
   SignInPayload,
 } from "@/types/client/services";
 
@@ -30,7 +30,7 @@ export const authService = {
   },
 
   checkAuth: async (): Promise<CheckAuthResponse> => {
-    const response = await api.get<MeResponse>("/auth/me");
+    const response = await api.get<User>("/auth/me");
     return response;
   },
 

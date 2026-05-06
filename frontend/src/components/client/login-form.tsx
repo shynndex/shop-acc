@@ -84,7 +84,7 @@ export function LoginForm({
               <Field>
                 <FieldLabel>Email</FieldLabel>
                 <Input
-                  id="username"
+                  id="email"
                   type="email"
                   placeholder="Email"
                   className="border-blue-700 focus-visible:ring-blue-600"

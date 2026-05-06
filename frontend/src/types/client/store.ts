@@ -1,4 +1,5 @@
 import type { User } from "@/types/index";
+import type { SignInPayload } from "./services";
 
 export interface AuthState {
   accessToken: string | null;
@@ -6,7 +7,7 @@ export interface AuthState {
   loading: boolean;
   isAuthenticated: boolean;
 
-  signIn: (payload: { email: string; password: string }) => Promise<boolean>;
+  signIn: (payload: SignInPayload) => Promise<boolean>;
 
   signUp: (payload: {
     username: string;
@@ -16,7 +17,7 @@ export interface AuthState {
     lastName: string;
   }) => Promise<boolean>;
   signOut: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  checkAuth: () => Promise<User | null>;
   setAccessToken: (token: string) => void;
   updateUser: (partialUser: Partial<User>) => void;
 }

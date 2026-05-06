@@ -26,7 +26,7 @@ export const clientRoutes = (
       <Route path=":categorySlug/:id" element={<AccountDetailPage />} />
     </Route>
 
-    <Route path="me">
+     <Route path="me"> {/* bổ sung thêm protected route */}
       <Route index element={<UserProfilePage />} />
       <Route path="orders" element={<OrderHistoryPage />} />
     </Route>

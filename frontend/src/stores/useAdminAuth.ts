@@ -1,6 +1,7 @@
 import { authService } from "@/services/admin/authService";
 import type { AdminUser } from "@/types";
 import type { AuthState } from "@/types/admin/store";
+import { toast } from "sonner";
 import { persist } from "zustand/middleware";
 import { create } from "zustand/react";
 
@@ -17,24 +18,18 @@ export const useAdminAuth = create<AuthState>()(
         try {
           const response = await authService.login(credentials);
 
-          if (response.success) {
-            set({
-              admin: response.admin,
-              isAuthenticated: true,
-              loading: false,
-              error: null,
-            });
-          } else {
-            set({
-              loading: false,
-              isAuthenticated: false,
-              error: response.message,
-            });
-            throw new Error(response.message);
-          }
-          return response;
+          set({
+            admin: response.admin,
+            isAuthenticated: true,
+            loading: false,
+            error: null,
+          });
+          toast.success("Đăng nhập thành công");
+          return response.admin;
         } catch (error: any) {
-          set({ loading: false, error: error.message });
+           const message = error?.message || "Đăng nhập thất bại";
+          toast.error(message);
+          set({ loading: false, error: message, isAuthenticated: false });
           throw error;
         }
       },
@@ -56,16 +51,16 @@ export const useAdminAuth = create<AuthState>()(
 
       checkAuth: async () => {
         try {
-          const response = await authService.getMe();
+          const admin = await authService.getMe();
 
-          if (response?.success && response.admin) {
+          if (admin) {
             set({
-              admin: response.admin,
+              admin: admin,
               isAuthenticated: true,
               error: null,
               loading: false,
             });
-            return response;
+            return admin;
           } else {
             // Chưa login hoặc token hết hạn
             set({

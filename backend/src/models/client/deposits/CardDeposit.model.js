@@ -24,16 +24,18 @@ const CardDepositSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    // Số tiền user khai báo
     declaredValue: {
       type: Number,
       required: true,
       min: 0,
-    }, // Số tiền user khai báo
+    },
+    // Số tiền THỰC NHẬN (đã trừ chiết khấu)
     receivedAmount: {
       type: Number,
       default: 0,
       min: 0,
-    }, // Số tiền THỰC NHẬN (đã trừ chiết khấu)
+    },
     isAmountMismatch: {
       type: Boolean,
       default: false,

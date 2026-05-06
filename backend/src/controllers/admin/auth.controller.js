@@ -1,5 +1,5 @@
-import Admin from "../../models/admin/Admin.model";
-import { getCookieOptions } from "../../utils/cookie.config";
+import { getCookieOptions } from "../../libs/cookie.config.js";
+import Admin from "../../models/admin/Admin.model.js";
 
 const generateToken = (admin) => {
   return jwt.sign(

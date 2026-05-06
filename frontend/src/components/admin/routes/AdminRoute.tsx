@@ -1,3 +1,4 @@
+import { useAdminAuth } from "@/stores/useAdminAuth";
 import { Loader2 } from "lucide-react";
 import { Navigate, Outlet, useLocation } from "react-router";
 
@@ -6,10 +7,10 @@ interface AdminRouteProps {
 }
 
 export const AdminRoute = ({ requireRole }: AdminRouteProps = {}) => {
-  const { admin, isAuthenticated, isLoading } = useAdminAuth();
+  const { admin, isAuthenticated, loading } = useAdminAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="size-8 animate-spin text-primary" />
@@ -19,7 +20,7 @@ export const AdminRoute = ({ requireRole }: AdminRouteProps = {}) => {
 
   // Chưa đăng nhập → redirect về login, lưu lại trang đang truy cập
   if (!isAuthenticated || !admin) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   //Không đủ quyền (role không khớp) → redirect về dashboard

@@ -11,8 +11,4 @@ export interface LoginResponse {
   message?: string;
 }
 
-export interface GetMeResponse {
-  success: boolean;
-  admin: AdminUser;
-  message?: string;
-}
+export type GetMeResponse = AdminUser | null;

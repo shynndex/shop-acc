@@ -86,12 +86,17 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
   const quickAmounts = [10000, 50000, 100000, 200000, 500000];
 
   useDepositSSE((data) => {
+    const isMatch =
+      data.referenceCode === paymentInfo?.referenceCode ||
+      data.depositId === activeDepositId;
     // Chỉ xử lý nếu event khớp với đơn đang chờ trong dialog
-    if (data.depositId === activeDepositId) {
+    if (isMatch) {
       if (data.status === "PAID" || data.status === "SUCCESS") {
-        updateUser({ balance: (user?.balance || 0) + data.amount });
+        toast.success(data.message || "Nạp tiền thành công", {
+          description: `Số tiền ${data.amount?.toLocaleString("vi-VN")}đ`,
+          duration: 5000,
+        });
       }
-      toast.success(data.message || "Nạp tiền thành công");
       setTimeout(() => {
         handleClose();
         setActiveDepositId(null);
@@ -171,7 +176,7 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
 
     try {
       const data = await depositService.createPaymentQR(amount);
-      setActiveDepositId(data.depositId);
+      setActiveDepositId(data.referenceCode);
       setPaymentInfo(data);
       toast.info("Đã tạo mã QR. Vui lòng quét để thanh toán");
     } catch (error: any) {
@@ -240,7 +245,7 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
                   {/* Cột trái: QR Code */}
                   <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-lg">
                     <QRCodeSVG
-                      value={paymentInfo?.qrCode || ""}
+                      value={paymentInfo?.qrImage || ""}
                       size={200}
                       level={"L"}
                       imageSettings={{

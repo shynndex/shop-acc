@@ -17,16 +17,17 @@ export const useAuthStore = create<AuthState>()(
 
         if (!accessToken) {
           set({ loading: false, user: null, isAuthenticated: false });
-          return;
+          return null;
         }
 
         set({ loading: true });
 
         // nếu có token thì gọi về backend để xác thực token
         try {
-          const response = await authService.checkAuth();
-          if (response?.success && response.user) {
-            set({ user: response.user, isAuthenticated: true, loading: false });
+          const user = await authService.checkAuth();
+          if (user) {
+            set({ user: user, isAuthenticated: true, loading: false });
+            return user;
           } else {
             set({
               loading: false,
@@ -34,6 +35,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
               accessToken: null,
             });
+            return null;
           }
         } catch (error) {
           console.log("Có lỗi xảy ra ở checkAuth", error);
@@ -43,6 +45,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             accessToken: null,
           });
+          return null;
         }
       },
 
@@ -62,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
             accessToken: response.accessToken,
             user: response.user,
             isAuthenticated: true,
-            loading:false
+            loading: false,
           });
 
           return true;
