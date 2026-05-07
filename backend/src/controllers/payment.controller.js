@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { generateId } from "../utils/generateId.js";
 import payOS from "../libs/payos.config.js";
 import User from "../models/client/User.model.js";
+import CardDeposit from "../models/client/deposits/CardDeposit.model.js";
 import {
   chargeCard,
   getFeeData,

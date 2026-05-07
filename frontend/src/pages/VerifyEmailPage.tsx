@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { authService } from "@/services/authService";
+import { authService } from "@/services/client/authService";
 import { CheckCircle, Link, Loader2, RefreshCw, XCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";

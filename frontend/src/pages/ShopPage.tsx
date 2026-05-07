@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GAME_CATEGORIES } from "@/config/categories";
-import { accountService } from "@/services/accountService";
+import { accountService } from "@/services/client/accountService";
 import type { Account } from "@/types";
 import { PackageX, Search, Tag } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";

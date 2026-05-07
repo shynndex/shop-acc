@@ -4,13 +4,13 @@ import AppLayout from "@/components/client/layout/AppLayout";
 import { PublicRoute } from "@/components/client/routes/PublicRoute";
 
 // ⚡ Lazy load để tối ưu bundle size
-const HomePage = lazy(() => import("@/pages/client/HomePage"));
-const SignInPage = lazy(() => import("@/pages/client/SignInPage"));
-const SignUpPage = lazy(() => import("@/pages/client/SignUpPage"));
-const ShopPage = lazy(() => import("@/pages/client/ShopPage"));
-const AccountDetailPage = lazy(() => import("@/pages/client/AccountDetailPage"));
-const UserProfilePage = lazy(() => import("@/pages/client/UserProfilePage"));
-const OrderHistoryPage = lazy(() => import("@/pages/client/OrderHistoryPage"));
+const HomePage = lazy(() => import("@/pages/HomePage"));
+const SignInPage = lazy(() => import("@/pages/SigninPage"));
+const SignUpPage = lazy(() => import("@/pages/SignUpPage"));
+const ShopPage = lazy(() => import("@/pages/ShopPage"));
+const AccountDetailPage = lazy(() => import("@/pages/AccountDetailPage"));
+const UserProfilePage = lazy(() => import("@/pages/UserProfilePage"));
+const OrderHistoryPage = lazy(() => import("@/pages/OrderHistoryPage"));
 
 export const clientRoutes = (
   <Route path="/" element={<AppLayout />}>

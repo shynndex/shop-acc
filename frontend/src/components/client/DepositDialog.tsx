@@ -57,7 +57,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "../ui/item";
-import { depositService } from "@/services/depositService";
+import { depositService } from "@/services/client/depositService";
 import type { PaymentLinkData } from "@/types/deposit";
 import { formatVND } from "@/lib/utils";
 import { useDepositSSE } from "@/hooks/useDepositSSE";

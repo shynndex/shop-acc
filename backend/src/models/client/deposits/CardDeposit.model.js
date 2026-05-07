@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import crypto from "crypto";
-import { encryptPin } from "../../../utils/encryptPin";
+import { encryptPin } from "../../../utils/encryptPin.js";
 
 const CardDepositSchema = new mongoose.Schema(
   {

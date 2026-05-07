@@ -1,7 +1,6 @@
 import { authService } from "@/services/admin/authService";
 import type { AdminUser } from "@/types";
 import type { AuthState } from "@/types/admin/store";
-import { toast } from "sonner";
 import { persist } from "zustand/middleware";
 import { create } from "zustand/react";
 
@@ -24,11 +23,9 @@ export const useAdminAuth = create<AuthState>()(
             loading: false,
             error: null,
           });
-          toast.success("Đăng nhập thành công");
           return response.admin;
         } catch (error: any) {
            const message = error?.message || "Đăng nhập thất bại";
-          toast.error(message);
           set({ loading: false, error: message, isAuthenticated: false });
           throw error;
         }

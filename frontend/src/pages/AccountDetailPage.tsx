@@ -2,7 +2,7 @@ import { ProductGallery } from "@/components/client/ProductGallery";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { accountService } from "@/services/accountService";
+import { accountService } from "@/services/client/accountService";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { Account } from "@/types";
 import { ShoppingCart } from "lucide-react";

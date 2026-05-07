@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { GAME_CATEGORIES } from "@/config/categories";
 import type { CategoryItem, GameCategory } from "@/types";
-import viewAllGif from "@/assets/view-all.gif";
+// import viewAllGif from "@/assets/view-all.gif";
 
 //  Card con tái sử dụng
 const CategoryCard = ({
@@ -51,7 +51,7 @@ const CategoryCard = ({
         </p>
 
         <div className="flex justify-center mt-5">
-          <img src={viewAllGif} alt="Xem tất cả" className=" cursor-pointer" />
+          {/* <img src={viewAllGif} alt="Xem tất cả" className=" cursor-pointer" /> */}
         </div>
       </CardContent>
     </Card>

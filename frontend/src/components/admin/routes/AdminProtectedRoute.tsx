@@ -2,11 +2,11 @@ import { useAdminAuth } from "@/stores/useAdminAuth";
 import { Loader2 } from "lucide-react";
 import { Navigate, Outlet, useLocation } from "react-router";
 
-interface AdminRouteProps {
+interface AdminProtectedRouteProps {
   requireRole?: "super_admin" | "admin";
 }
 
-export const AdminRoute = ({ requireRole }: AdminRouteProps = {}) => {
+export const AdminProtectedRoute = ({ requireRole }: AdminProtectedRouteProps = {}) => {
   const { admin, isAuthenticated, loading } = useAdminAuth();
   const location = useLocation();
 

@@ -30,9 +30,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { TeamSwitcher } from "./team-switcher";
 import { NavMain } from "./nav-main";
-import { NavProjects } from "./nav-projects";
 import { NavUser } from "./nav-user";
 import { useAdminAuth } from "@/stores/useAdminAuth";
 
@@ -47,7 +45,7 @@ const adminNav = [
     title: "Giao dịch nạp tiền",
     url: "/admin/deposits",
     icon: CreditCard,
-    item: [
+    items: [
       { title: "Tất cả", url: "/admin/deposits" },
       { title: "Chờ xử lý", url: "/admin/deposits?status=PENDING" },
       { title: "Thành công", url: "/admin/deposits?status=PAID" },
@@ -63,12 +61,18 @@ const adminNav = [
     title: "Cấu hình",
     url: "/admin/config",
     icon: Settings,
-    item: [
+    items: [
       { title: "Chung", url: "/admin/config/general" },
       { title: "Ngân hàng", url: "/admin/config/banks" },
       { title: "Thẻ cào", url: "/admin/config/cards" },
     ],
   },
+  {
+    title: "Tài khoản",
+    url: "/admin/accounts",
+    icon: User,
+   
+  }
 ];
 
 const superAdminNav = [

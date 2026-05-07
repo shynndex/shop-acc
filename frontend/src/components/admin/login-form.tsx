@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useAdminAuth } from "@/stores/useAdminAuth";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 export function LoginForm({
   className,
@@ -47,9 +48,9 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>Đăng nhập vào tài khoản admin</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Nhập email của bạn bên dưới để đăng nhập vào tài khoản
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -68,16 +69,31 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <FieldLabel htmlFor="password">Mật khẩu</FieldLabel>
 
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  disabled={loading}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    disabled={loading}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </Field>
               <Field>
                 <Button type="submit" disabled={loading}>

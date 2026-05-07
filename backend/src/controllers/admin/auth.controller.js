@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { getCookieOptions } from "../../libs/cookie.config.js";
 import Admin from "../../models/admin/Admin.model.js";
 
