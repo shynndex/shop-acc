@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
+import { useAdminAccountStore } from "@/stores/useAdminAccountStore";
+import type { Account } from "@/types/admin/account";
 import { Plus, RefreshCw } from "lucide-react";
-import React from "react";
+import  { useState } from "react";
 
 const Accounts = () => {
-    const loading = false
+    const {accounts,pagination,loading,error,fetchList} = useAdminAccountStore()
+    const [showForm,setShowForm] = useState(false)
+    const [editingAccount,setEditingAccount] = useState<Account | null>(null)
   return (
     <div className="container-wrapper">
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -33,9 +37,35 @@ const Accounts = () => {
         </div>
 
         <div className="flex gap-2">
-          <div>Search</div>
-          <div>filter</div>
+          <AccountSearch />
+          <AccountFilters />
         </div>
+
+        {
+          loading ? (
+            <TableSkeleton />
+          ): error ? (
+            <ErrorMessage message={error} onRetry={()=>{fetchList({page:1})}}/>
+          ) : Accounts.length === 0 ? (
+            <EmptyState onCreate={() => {}} />
+
+          ) : (
+            <AccountTable accounts={accounts} onEdit={(id)=>{
+              const acc = accounts.find((a) => a._id === id);
+              if(acc){
+                setEditingAccount(acc); setShowForm(true)
+                
+              }
+            }}/>
+          )
+        }
+        
+        {showForm &&(
+          <AccountForm initialData = {editingAccount}
+          onClose={() => setShowForm(false);set EditingAccount(null)}
+          onSuccess={() => fetchList({ page: 1 })}
+          />
+        )}
       </div>
     </div>
   );

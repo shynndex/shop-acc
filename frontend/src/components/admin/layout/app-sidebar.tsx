@@ -71,8 +71,7 @@ const adminNav = [
     title: "Tài khoản",
     url: "/admin/accounts",
     icon: User,
-   
-  }
+  },
 ];
 
 const superAdminNav = [
