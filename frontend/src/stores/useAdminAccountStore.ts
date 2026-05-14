@@ -91,9 +91,8 @@ export const useAdminAccountStore = create<AccountState>((set, get) => ({
       set({ error: message });
       toast.error(message);
       return null;
-    }
-    finally {
-        set({ loading: false });
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -118,7 +117,7 @@ export const useAdminAccountStore = create<AccountState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-  
+
   //Set accounts directly (useful for manual refresh)
-  setAccounts: (accounts) => set({ accounts })  
+  setAccounts: (accounts) => set({ accounts }),
 }));

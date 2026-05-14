@@ -1,6 +1,6 @@
 import type { Account } from "@/types/admin/account";
 import React from "react";
-import { AccountColumns } from "./AccountColumns";
+import { AccountColumns } from "@/components/admin/accounts/AccountColumns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,14 +10,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
-  
   Edit,
   MoreHorizontal,
   ToggleLeft,
   ToggleRight,
   Trash2,
 } from "lucide-react";
-import { DataTable } from "../shared";
+import DataTable from "@/components/admin/shared/DataTable/DataTable";
 
 interface AccountTableProps {
   accounts: Account[];
@@ -63,28 +62,30 @@ const AccountTable = ({
                 <DropdownMenuItem onClick={() => onEdit?.(account._id)}>
                   <Edit className="mr-2 size-4" /> Chỉnh sửa
                 </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onToggleStatus?.(account._id, !account.isActive)}
-                className={
-                  account.isActive ? "text-orange-600" : "text-green-600"
-                }
-              >
-                {account.isActive ? (
-                  <ToggleLeft className="mr-2 size-4" />
-                ) : (
-                  <ToggleRight className="mr-2 size-4" />
-                )}
-                {account.isActive ? "Ẩn" : "Hiển thị"}
-              </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    onToggleStatus?.(account._id, !account.isActive)
+                  }
+                  className={
+                    account.isActive ? "text-orange-600" : "text-green-600"
+                  }
+                >
+                  {account.isActive ? (
+                    <ToggleLeft className="mr-2 size-4" />
+                  ) : (
+                    <ToggleRight className="mr-2 size-4" />
+                  )}
+                  {account.isActive ? "Ẩn" : "Hiển thị"}
+                </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-              <DropdownMenuItem
-                onClick={() => onDelete?.(account._id)}
-                className="text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="mr-2 size-4" /> Xóa
-              </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onDelete?.(account._id)}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 size-4" /> Xóa
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           );
