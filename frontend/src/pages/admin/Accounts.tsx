@@ -1,6 +1,4 @@
 import AccountTable from "@/components/admin/accounts/AccountTable";
-import EmptyState from "@/components/admin/accounts/EmptyState";
-import ErrorMessage from "@/components/admin/accounts/ErrorMessage";
 import {
   FilterBar,
   FilterDropdown,
@@ -8,28 +6,13 @@ import {
 } from "@/components/admin/shared";
 import SearchBar from "@/components/admin/shared/SearchBar";
 import { Button } from "@/components/ui/button";
+import { gameOptions, typeOptions } from "@/constant/account-options";
 import { useAdminAccountStore } from "@/stores/useAdminAccountStore";
 import type { Account } from "@/types/admin/account";
 import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
-//Options cho filter dropdowns
-export const gameOptions = [
-  { value: "", label: "Tất cả game" },
-  { value: "lien-quan", label: "Liên Quân", icon: "🎮" },
-  { value: "lien-minh", label: "LMHT", icon: "⚔️" },
-  { value: "valorant", label: "Valorant", icon: "🔫" },
-  { value: "free-fire", label: "Free Fire", icon: "🔥" },
-  { value: "khac", label: "Khác", icon: "🎲" },
-];
 
-export const typeOptions = [
-  { value: "", label: "Tất cả loại" },
-  { value: "standard", label: "Thường" },
-  { value: "vip", label: "VIP" },
-  { value: "reg", label: "Reg" },
-  { value: "random", label: "Random" },
-];
 const Accounts = () => {
   const {
     accounts,
