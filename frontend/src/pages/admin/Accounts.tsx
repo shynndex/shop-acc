@@ -1,4 +1,5 @@
 import AccountTable from "@/components/admin/accounts/AccountTable";
+import AccountForm from "@/components/admin/accounts/AccountForm";
 import {
   FilterBar,
   FilterDropdown,
@@ -194,15 +195,17 @@ const Accounts = () => {
         />
       </div>
 
-      {/* <AccountForm
-        account={editingAccount}
-        isOpen={showForm}
-        onClose={() => {
-          setShowForm(false);
-          setEditingAccount(null);
+      <AccountForm
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) {
+            setEditingAccount(null);
+          }
         }}
+        initialData={editingAccount}
         onSuccess={handleFormSuccess}
-      /> */}
+      />
     </div>
   );
 };

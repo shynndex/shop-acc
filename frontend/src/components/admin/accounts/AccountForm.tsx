@@ -186,8 +186,8 @@ const AccountForm = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <DialogContent className="max-h-[92vh] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <DialogHeader>
             <DialogTitle>
               {isEdit ? "Chỉnh sửa" : "Thêm mới"} tài khoản
@@ -200,7 +200,7 @@ const AccountForm = ({
 
           <FieldGroup className="space-y-4">
             <Field>
-              <Label htmlFor="title">Tên tài khoản *</Label>
+              <Label htmlFor="title">Tên tài khoản <span className="text-red-500">*</span></Label>
               <Input
                 value={formData.title}
                 onChange={(e) =>
@@ -212,9 +212,9 @@ const AccountForm = ({
                 minLength={3}
               />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field>
-                <Label htmlFor="game">Game *</Label>
+                <Label htmlFor="game">Game <span className="text-red-500">*</span></Label>
                 <Select
                   value={formData.game}
                   onValueChange={(v: GameType) =>
@@ -225,18 +225,20 @@ const AccountForm = ({
                     <SelectValue placeholder="Chọn game" />
                   </SelectTrigger>
                   <SelectContent>
-                    {gameOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <span className="mr-2">{option.icon}</span>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    {gameOptions
+                      .filter((option) => Boolean(option.value))
+                      .map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <span className="mr-2">{option.icon}</span>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </Field>
 
               <Field>
-                <Label htmlFor="price">Loại tài khoản *</Label>
+                <Label htmlFor="price">Loại tài khoản <span className="text-red-500">*</span></Label>
                 <Select
                   value={formData.type}
                   onValueChange={(v: AccountType) =>
@@ -247,18 +249,20 @@ const AccountForm = ({
                     <SelectValue placeholder="Kiểu tài khoản" />
                   </SelectTrigger>
                   <SelectContent>
-                    {typeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    {typeOptions
+                      .filter((option) => Boolean(option.value))
+                      .map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </Field>
             </div>
 
             <Field>
-              <Label htmlFor="price">Giá bán *</Label>
+              <Label htmlFor="price">Giá bán <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   type="number"
@@ -298,14 +302,14 @@ const AccountForm = ({
               />
             </Field>
 
-            <div className="p-4 border rounded-lg bg-orange-50/50 border-orange-200 space-y-4">
+            <div className="space-y-4 rounded-lg border border-orange-200 bg-orange-50/50 p-3 sm:p-4">
               <Label className="text-orange-700 text-base font-semibold">
                 Thông tin đăng nhập
               </Label>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field>
-                  <Label>Tên đăng nhập *</Label>
+                  <Label>Tên đăng nhập <span className="text-red-500">*</span></Label>
                   <Input
                     type="text"
                     value={formData.loginInfo.username}
@@ -324,7 +328,7 @@ const AccountForm = ({
                   />
                 </Field>
                 <Field>
-                  <Label>Mật khẩu *</Label>
+                  <Label>Mật khẩu <span className="text-red-500">*</span></Label>
                   <Input
                     type="text"
                     value={formData.loginInfo.password}
@@ -351,7 +355,7 @@ const AccountForm = ({
                 Thêm thông tin như: Rank, Số skin, Tướng sở hữu...
               </p>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Input
                   placeholder="Tên thuộc tính (vd: Rank)"
                   value={attributeInput.key}
@@ -362,7 +366,7 @@ const AccountForm = ({
                     })
                   }
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
                     placeholder="Giá trị (vd: Cao Thủ)"
                     value={attributeInput.value}
@@ -379,6 +383,7 @@ const AccountForm = ({
                   />
                   <Button
                     type="button"
+                    className="w-full sm:w-auto"
                     size="icon"
                     variant="outline"
                     onClick={handleAddAttribute}
@@ -393,12 +398,12 @@ const AccountForm = ({
                   {Object.entries(formData.attributes).map(([key, value]) => (
                     <div
                       key={key}
-                      className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-full text-sm"
+                      className="flex max-w-full items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-sm"
                     >
                       <span className="font-medium text-muted-foreground">
                         {key}:
                       </span>
-                      <span>{String(value)}</span>
+                      <span className="break-all">{String(value)}</span>
                       <Button
                         type="button"
                         onClick={() => handleRemoveAttribute(key)}
@@ -427,30 +432,31 @@ const AccountForm = ({
               </p>
             </Field>
           </FieldGroup>
+          <DialogFooter className="border-t pt-2 sm:pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Hủy
+            </Button>
+            <Button type="submit" className="w-full sm:w-auto" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : isEdit ? (
+                "Cập nhật"
+              ) : (
+                "Tạo mới"
+              )}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
-      <DialogFooter className="pt-4 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-          disabled={loading}
-        >
-          Hủy
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Đang xử lý...
-            </>
-          ) : isEdit ? (
-            "Cập nhật"
-          ) : (
-            "Tạo mới"
-          )}
-        </Button>
-      </DialogFooter>
     </Dialog>
   );
 };
