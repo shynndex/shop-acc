@@ -1,6 +1,6 @@
 import type { AdminUser } from "@/types/index";
 
-export interface LoginRequest {
+export interface LoginPayload {
   email: string;
   password: string;
 }
@@ -12,3 +12,9 @@ export interface LoginResponse {
 }
 
 export type GetMeResponse = AdminUser | null;
+
+export interface UploadResponse {
+  success: boolean;
+  url: string;
+  message?: string;
+}

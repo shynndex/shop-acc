@@ -22,16 +22,21 @@ const FilterBar = ({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-3 p-4 border rounded-lg bg-card",
+        "flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:p-4",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-3 flex-1">{children}</div>
+      <div className="flex w-full flex-col gap-3 sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center">
+        {children}
+      </div>
       {showReset && onReset && (
-        <>
-          <Separator orientation="vertical" className="h-6" />
+        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+          <Separator
+            orientation="vertical"
+            className="hidden h-6 sm:block"
+          />
           <Button
-            className="text-muted-foreground hover:text-foreground"
+            className="w-full justify-center text-muted-foreground hover:text-foreground sm:w-auto"
             variant="ghost"
             size="sm"
             onClick={onReset}
@@ -39,7 +44,7 @@ const FilterBar = ({
             <X className="mr-1 size-4" />
             {resetLabel}
           </Button>
-        </>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
-import { authService } from "@/services/admin/authService";
+import { authService } from "@/services/admin/auth.service";
 import type { AdminUser } from "@/types";
-import type { AuthState } from "@/types/admin/store";
+import type { AuthState } from "@/types/admin/store.type";
 import { persist } from "zustand/middleware";
 import { create } from "zustand/react";
 

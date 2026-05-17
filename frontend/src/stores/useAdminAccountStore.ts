@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { toast } from "sonner";
-import type { AccountState } from "@/types/admin/store";
-import { accountService } from "@/services/admin/accountService";
+import type { AccountState } from "@/types/admin/store.type";
+import { accountService } from "@/services/admin/account.service";
 
 export const useAdminAccountStore = create<AccountState>((set, get) => ({
   // initial state

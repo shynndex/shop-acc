@@ -5,6 +5,7 @@ import authRoute from "./routes/auth.route.js";
 import accountRoute from "./routes/account.route.js";
 import sseRoute from "./routes/sse.route.js";
 import userRoute from "./routes/user.route.js";
+import uploadRoute from "./routes/admin/upload.route.js";
 
 import paymentRoute from "./routes/payment.route.js";
 import adminAuthRoute from "./routes/admin/auth.route.js";
@@ -40,6 +41,8 @@ app.use("/api/payment", paymentRoute);
 app.use("/api/sse", sseRoute);
 app.use("/api/admin/auth", adminAuthRoute);
 app.use("/api/admin/accounts", adminAccountRoute);
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+app.use("/api/admin/upload", uploadRoute);
 
 connectDB()
   .then(() => {

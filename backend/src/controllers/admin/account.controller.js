@@ -11,6 +11,7 @@ export const getAccounts = async (req, res) => {
     const {
       game,
       type,
+      status,
       minPrice,
       maxPrice,
       search,
@@ -19,9 +20,34 @@ export const getAccounts = async (req, res) => {
     } = req.query;
 
     const query = {};
+    const parseMultiQuery = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) {
+        return value
+          .flatMap((item) => String(item).split(","))
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+      return String(value)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    };
 
-    if (game) query.game = game;
-    if (type) query.type = type;
+    const gameFilters = parseMultiQuery(game);
+    const typeFilters = parseMultiQuery(type);
+    const statusFilters = parseMultiQuery(status);
+
+    if (gameFilters.length === 1) query.game = gameFilters[0];
+    if (gameFilters.length > 1) query.game = { $in: gameFilters };
+
+    if (typeFilters.length === 1) query.type = typeFilters[0];
+    if (typeFilters.length > 1) query.type = { $in: typeFilters };
+
+    const hasActive = statusFilters.includes("active");
+    const hasInactive = statusFilters.includes("inactive");
+    if (hasActive && !hasInactive) query.isActive = true;
+    if (!hasActive && hasInactive) query.isActive = false;
 
     if (minPrice || maxPrice) {
       query.price = {};

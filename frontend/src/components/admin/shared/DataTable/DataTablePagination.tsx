@@ -41,10 +41,10 @@ const DataTablePagination = <TData,>({
   className,
 }: DataTablePaginationProps<TData>) => {
   const pageCount = table.getPageCount();
-  const canPreviousPage = table.getCanPreviousPage();
-  const canNextPage = table.getCanNextPage();
-
   const totalPages = totalItems ? Math.ceil(totalItems / pageSize) : pageCount;
+  const normalizedTotalPages = Math.max(1, totalPages || 1);
+  const isFirstPage = currentPage <= 1;
+  const isLastPage = currentPage >= normalizedTotalPages;
 
   const handlePageSizeChange = (value: string) => {
     const size = Number(value);
@@ -56,34 +56,35 @@ const DataTablePagination = <TData,>({
   };
 
   const handlePageChange = (page: number) => {
+    const nextPage = Math.min(normalizedTotalPages, Math.max(1, page));
+    if (nextPage === currentPage) return;
+
     if (onPageChange) {
-      onPageChange(page);
+      onPageChange(nextPage);
     } else {
-      table.setPageIndex(page - 1);
+      table.setPageIndex(nextPage - 1);
     }
   };
 
-  const startIndex = (currentPage - 1) * pageSize + 1;
-  const endIndex = Math.min(
-    currentPage * pageSize,
-    totalItems || startIndex + pageSize - 1,
-  );
   return (
     <div
-      className={cn("flex items-center justify-between px-2 py-4", className)}
+      className={cn(
+        "flex flex-col gap-3 px-2 py-4 sm:flex-row sm:items-center sm:justify-between",
+        className,
+      )}
     >
       {/* Left: Page size selector */}
       {showPageSizeOptions && onPageChange && (
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <p className="text-sm text-muted-foreground">Số dòng</p>
           <Select
             value={pageSize.toString()}
             onValueChange={handlePageSizeChange}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger className="h-8 w-[74px]">
               <SelectValue placeholder={pageSize} />
             </SelectTrigger>
-            <SelectContent side="top">
+            <SelectContent>
               {pageSizeOptions.map((size) => (
                 <SelectItem key={size} value={size.toString()}>
                   {size}
@@ -94,25 +95,25 @@ const DataTablePagination = <TData,>({
         </div>
       )}
 
-      <div className="flex items-center gap-6 lg:gap-8">
-        <div className="flex items-center gap-2">
+      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-6 lg:gap-8">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-medium">
-            Trang {currentPage} / {totalPages}
+            Trang {currentPage} / {normalizedTotalPages}
           </p>
-          {totalItems && (
+          {totalItems !== undefined && totalItems > 0 && (
             <p className="text-sm text-muted-foreground">
               ({totalItems.toLocaleString()} kết quả)
             </p>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:justify-end">
           {/* First page */}
           <Button
             className={"hidden size-8 p-0 lg:flex"}
             variant={"outline"}
             onClick={() => handlePageChange(1)}
-            disabled={!canPreviousPage && currentPage === 1}
+            disabled={isFirstPage}
           >
             <ChevronsLeft className="size-4" />
           </Button>
@@ -121,21 +122,21 @@ const DataTablePagination = <TData,>({
             className={"size-8 p-0"}
             variant={"outline"}
             onClick={() => handlePageChange(currentPage - 1)}
-            disabled={!canPreviousPage && currentPage === 1}
+            disabled={isFirstPage}
           >
             <ChevronLeft className="size-4" />
           </Button>
 
           {/* Page number */}
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          <div className="hidden items-center gap-1 md:flex">
+            {Array.from({ length: Math.min(5, normalizedTotalPages) }, (_, i) => {
               let pageNum = i + 1;
-              if (totalPages > 5) {
+              if (normalizedTotalPages > 5) {
                 if (currentPage > 3) {
                   pageNum = currentPage - 2 + i;
                 }
-                if (pageNum > totalPages) {
-                  pageNum = totalPages - 4 + i;
+                if (pageNum > normalizedTotalPages) {
+                  pageNum = normalizedTotalPages - 4 + i;
                 }
               }
               return pageNum;
@@ -166,7 +167,7 @@ const DataTablePagination = <TData,>({
             className={"size-8 p-0"}
             variant={"outline"}
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={!canNextPage && currentPage === totalPages}
+            disabled={isLastPage}
           >
             <ChevronRight className="size-4" />
           </Button>
@@ -174,8 +175,8 @@ const DataTablePagination = <TData,>({
           <Button
             className={"hidden size-8 p-0 lg:flex"}
             variant={"outline"}
-            onClick={() => handlePageChange(totalPages)}
-            disabled={!canNextPage && currentPage === totalPages}
+            onClick={() => handlePageChange(normalizedTotalPages)}
+            disabled={isLastPage}
           >
             <ChevronsRight className="size-4" />
           </Button>

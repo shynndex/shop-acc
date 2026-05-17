@@ -1,7 +1,7 @@
 import type { AdminUser } from "..";
-import type { Account } from "./account"
-import type { CreateAccountPayload, UpdateAccountPayload } from "./account";
-import type { LoginRequest } from "./services";
+import type { Account } from "./account.type"
+import type { CreateAccountPayload, UpdateAccountPayload } from "./account.type";
+import type { LoginPayload } from "./auth.type";
 
 export interface AuthState {
   admin: AdminUser | null;
@@ -9,7 +9,7 @@ export interface AuthState {
   error: string | null;
   isAuthenticated: boolean;
 
-  login: (credentials: LoginRequest) => Promise<AdminUser>;
+  login: (credentials: LoginPayload) => Promise<AdminUser>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<AdminUser | null>;
   clearError: () => void;
@@ -30,8 +30,9 @@ export interface AccountState {
 
   // Actions
   fetchList: (params?: {
-    game?: string;
-    type?: string;
+    game?: string | string[];
+    type?: string | string[];
+    status?: string | string[];
     minPrice?: number;
     maxPrice?: number;
     search?: string;

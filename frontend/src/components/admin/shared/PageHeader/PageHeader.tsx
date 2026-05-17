@@ -34,7 +34,7 @@ const PageHeader = ({
           <div className="text-sm text-muted-foreground">{breadcrumbs}</div>
         )}
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <h1
               className={cn(
@@ -51,7 +51,7 @@ const PageHeader = ({
             )}
           </div>
           {actions && (
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:w-auto md:flex-shrink-0">
               {actions}
             </div>
           )}

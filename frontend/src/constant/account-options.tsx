@@ -15,3 +15,9 @@ export const typeOptions = [
   { value: "reg", label: "Reg" },
   { value: "random", label: "Random" },
 ];
+
+export const statusOptions = [
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "active", label: "Hoạt động" },
+  { value: "inactive", label: "Không hoạt động" },
+];

@@ -1,12 +1,12 @@
 import { api } from "@/lib/adminAxios";
 import type {
   GetMeResponse,
-  LoginRequest,
+  LoginPayload,
   LoginResponse,
-} from "@/types/admin/services";
+} from "@/types/admin/auth.type";
 
 export const authService = {
-  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+  login: async (credentials: LoginPayload): Promise<LoginResponse> => {
     const response = await api.post<LoginResponse>("/auth/login", credentials);
     return response;
   },

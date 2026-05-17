@@ -58,3 +58,14 @@ export interface UpdateAccountPayload {
   loginInfo?: AccountLoginInfo;
   isActive?: boolean;
 }
+
+// Cuối file account.type.ts
+export interface AccountImage {
+  id: string;
+  file?: File;
+  url: string;
+  public_id?: string;
+  preview: string;
+  isUploading?: boolean;
+  error?: string;
+}

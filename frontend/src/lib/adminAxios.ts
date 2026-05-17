@@ -19,7 +19,20 @@ export const adminApi: AxiosInstance = axios.create({
 });
 
 adminApi.interceptors.response.use(
-  (response) => response.data, // Auto unwrap .data
+  (response) => {
+    const res = response.data; // ApiResponse<T>
+
+    if (res?.success !== undefined) {
+      if (!res.success) {
+        return Promise.reject(res);
+      }
+      // Nếu có field "data", unwrap; ngược lại trả toàn bộ res
+      return res.data !== undefined ? res.data : res;
+    }
+
+    // Với response không có "success", trả nguyên vẹn
+    return res;
+  },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       if (

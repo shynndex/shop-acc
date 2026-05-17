@@ -1,14 +1,13 @@
 import * as React from "react";
-import {
+import type {
   ColumnDef,
-  ColumnFiltersState,
   SortingState,
   VisibilityState,
+} from "@tanstack/react-table";
+
+import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import {
@@ -19,22 +18,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { FolderX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DataTablePagination from "./DataTablePagination";
+
+type DataTableColumnMeta = {
+  headerClassName?: string;
+  cellClassName?: string;
+};
 
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   loading?: boolean;
   className?: string;
+  tableClassName?: string;
   enableSorting?: boolean;
   enableColumnFilters?: boolean;
   enableRowSelection?: boolean;
@@ -54,6 +52,7 @@ const DataTable = <TData, TValue>({
   data,
   loading = false,
   className,
+  tableClassName,
   enableSorting = true,
   enableColumnFilters = false,
   enableRowSelection = false,
@@ -91,47 +90,48 @@ const DataTable = <TData, TValue>({
   });
 
   // Default loading state
-  const defaultLoadingState = (
-    <TableBody>
-      {Array.from({ length: pageSize }).map((_, i) => (
-        <TableRow key={i} className="animate-pulse">
-          {columns.map((_, j) => (
-            <TableCell key={j}>
-              <div className="h-4 bg-muted rounded w-full"></div>
-            </TableCell>
-          ))}
-        </TableRow>
+  const defaultLoadingState = Array.from({ length: pageSize }).map((_, i) => (
+    <TableRow key={i} className="animate-pulse">
+      {columns.map((_, j) => (
+        <TableCell key={j}>
+          <div className="h-4 w-full rounded bg-muted"></div>
+        </TableCell>
       ))}
-    </TableBody>
-  );
+    </TableRow>
+  ));
 
   // Default empty state
+  const visibleColumnCount = table.getVisibleLeafColumns().length || 1;
   const defaultEmptyState = (
-    <TableBody>
-      <TableRow>
-        <TableCell colSpan={columns.length} className="h-24 text-center">
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <FolderX />
-              </EmptyMedia>
-              <EmptyTitle>Không có dữ liệu</EmptyTitle>
-            </EmptyHeader>
-          </Empty>
-        </TableCell>
-      </TableRow>
-    </TableBody>
+    <TableRow>
+      <TableCell
+        colSpan={visibleColumnCount}
+        className="h-32 p-0 align-middle whitespace-normal"
+      >
+        <div className="mx-auto flex h-full w-full flex-col items-center justify-center text-center text-muted-foreground">
+          <FolderX className="mb-2 h-12 w-12 opacity-50" />
+          <p className="text-sm font-medium">Không có dữ liệu</p>
+          <p className="mt-1 text-xs">Thêm tài khoản đầu tiên để bắt đầu</p>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 
   return (
     <div className={cn("space-y-4", className)}>
       <div className="rounded-md border">
-        <Table>
+        <Table className={tableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={
+                      (header.column.columnDef.meta as DataTableColumnMeta)
+                        ?.headerClassName
+                    }
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -157,7 +157,13 @@ const DataTable = <TData, TValue>({
                       }
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
+                        <TableCell
+                          key={cell.id}
+                          className={
+                            (cell.column.columnDef.meta as DataTableColumnMeta)
+                              ?.cellClassName
+                          }
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext(),
