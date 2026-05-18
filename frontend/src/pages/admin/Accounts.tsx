@@ -66,11 +66,12 @@ const Accounts = () => {
     });
   };
 
+  // Dùng để hiển thị nút "Reset" có điều kiện
   const hasActiveFilters = Boolean(
     filters.search.trim() ||
-      filters.game.length > 0 ||
-      filters.type.length > 0 ||
-      filters.status.length > 0,
+    filters.game.length > 0 ||
+    filters.type.length > 0 ||
+    filters.status.length > 0,
   );
 
   const handleEdit = (id: string) => {
@@ -153,7 +154,9 @@ const Accounts = () => {
               placeholder="Game"
               multiple
               values={filters.game}
-              onValuesChange={(values) => handleMultiFilterChange("game", values)}
+              onValuesChange={(values) =>
+                handleMultiFilterChange("game", values)
+              }
               options={gameOptions.filter((option) => Boolean(option.value))}
             />
           </div>
@@ -163,7 +166,9 @@ const Accounts = () => {
               placeholder="Loại"
               multiple
               values={filters.type}
-              onValuesChange={(values) => handleMultiFilterChange("type", values)}
+              onValuesChange={(values) =>
+                handleMultiFilterChange("type", values)
+              }
               options={typeOptions.filter((option) => Boolean(option.value))}
             />
           </div>

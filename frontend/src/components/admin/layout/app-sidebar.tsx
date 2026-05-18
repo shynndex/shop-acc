@@ -72,6 +72,11 @@ const adminNav = [
     url: "/admin/accounts",
     icon: User,
   },
+  {
+    title: "Thanh toán",
+    url: "/admin/payments",
+    icon: CreditCard,
+  },
 ];
 
 const superAdminNav = [

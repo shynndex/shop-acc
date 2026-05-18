@@ -1,4 +1,4 @@
-import cloudinary from "../../libs/cloudinary.config";
+import cloudinary from "../../libs/cloudinary.config.js";
 
 // Upload ảnh (middleware 'upload' đã handle mọi thứ)
 export const uploadImage = async (req, res) => {
@@ -21,7 +21,7 @@ export const uploadImage = async (req, res) => {
         public_id, // ID để xóa sau này
         format, // jpg/png/webp
         size: bytes, // Kích thước file
-        orginal_name: req.file.orginal_name,
+        original_name: req.file.original_name,
       },
     });
   } catch (error) {

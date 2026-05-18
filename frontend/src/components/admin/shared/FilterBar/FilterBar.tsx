@@ -7,8 +7,8 @@ import React from "react";
 export interface FilterBarProps {
   children: React.ReactNode;
   className?: string;
-  showReset?: boolean;
-  onReset?: () => void;
+  showReset?: boolean; // nút hiển thị reset nếu có filter đang được áp dụng
+  onReset?: () => void; // Hàm gọi khi nhấn nút reset
   resetLabel?: string;
 }
 

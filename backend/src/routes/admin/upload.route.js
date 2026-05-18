@@ -3,12 +3,12 @@ import {
   adminProtect,
   requireRole,
 } from "../../middlewares/admin/auth.middleware.js";
-import { handleUpload } from "../../middlewares/admin/upload.middleware.js";
 import {
   deleteImage,
   deleteImages,
   uploadImage,
 } from "../../controllers/admin/cloudinary.controller.js";
+import upload from "../../middlewares/admin/upload.middleware.js";
 
 const router = express.Router();
 

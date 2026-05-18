@@ -1,7 +1,11 @@
 import type { AdminUser } from "..";
-import type { Account } from "./account.type"
-import type { CreateAccountPayload, UpdateAccountPayload } from "./account.type";
+import type { Account } from "./account.type";
+import type {
+  CreateAccountPayload,
+  UpdateAccountPayload,
+} from "./account.type";
 import type { LoginPayload } from "./auth.type";
+import type { Deposit, UpdateDepositStatusPayload } from "./deposit.type";
 
 export interface AuthState {
   admin: AdminUser | null;
@@ -51,4 +55,18 @@ export interface AccountState {
   // Utils
   clearError: () => void;
   setAccounts: (accounts: Account[]) => void;
+}
+
+export interface AdminDepositState {
+  deposits: Deposit[];
+  pagination: { currentPage: number; totalPages: number; totalItems: number };
+  loading: boolean;
+  error: string | null;
+
+  fetchList: (params?: Record<string, any>) => Promise<void>;
+  updateStatus: (
+    id: string,
+    payload: UpdateDepositStatusPayload,
+  ) => Promise<Deposit | null>;
+  exportCsv: (filters?: Record<string, any>) => Promise<Blob | null>;
 }
