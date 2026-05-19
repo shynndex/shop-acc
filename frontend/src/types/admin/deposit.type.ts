@@ -1,10 +1,5 @@
 export type DepositType = "bank" | "card";
-export type DepositStatus =
-  | "PENDING"
-  | "PAID"
-  | "SUCCESS"
-  | "FAILED"
-  | "CANCELLED";
+export type DepositStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED";
 
 export interface BankDepositInfo {
   bankName?: string;

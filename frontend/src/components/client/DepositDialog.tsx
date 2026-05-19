@@ -91,7 +91,7 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
       data.depositId === activeDepositId;
     // Chỉ xử lý nếu event khớp với đơn đang chờ trong dialog
     if (isMatch) {
-      if (data.status === "PAID" || data.status === "SUCCESS") {
+      if (data.status === "PAID") {
         toast.success(data.message || "Nạp tiền thành công", {
           description: `Số tiền ${data.amount?.toLocaleString("vi-VN")}đ`,
           duration: 5000,

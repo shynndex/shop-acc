@@ -5,7 +5,6 @@ import type { ApiResponse } from ".";
 export type DepositStatus =
   | "PENDING"
   | "PAID" // Bank
-  | "SUCCESS" // Card
   | "FAILED"
   | "CANCELLED"
   | "EXPIRED";
@@ -106,7 +105,7 @@ export interface FeeCalculationResponse {
 export interface DepositStatusResponse {
   success: boolean;
   data: {
-    status: "PENDING" | "SUCCESS" | "FAILED";
+    status: "PENDING" | "FAILED";
     message: string;
     receivedAmount?: number;
     isAmountMismatch?: boolean;

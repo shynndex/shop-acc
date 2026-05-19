@@ -200,7 +200,9 @@ const AccountForm = ({
 
           <FieldGroup className="space-y-4">
             <Field>
-              <Label htmlFor="title">Tên tài khoản <span className="text-red-500">*</span></Label>
+              <Label htmlFor="title">
+                Tên tài khoản <span className="text-red-500">*</span>
+              </Label>
               <Input
                 value={formData.title}
                 onChange={(e) =>
@@ -214,7 +216,9 @@ const AccountForm = ({
             </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field>
-                <Label htmlFor="game">Game <span className="text-red-500">*</span></Label>
+                <Label htmlFor="game">
+                  Game <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.game}
                   onValueChange={(v: GameType) =>
@@ -238,7 +242,9 @@ const AccountForm = ({
               </Field>
 
               <Field>
-                <Label htmlFor="price">Loại tài khoản <span className="text-red-500">*</span></Label>
+                <Label htmlFor="price">
+                  Loại tài khoản <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.type}
                   onValueChange={(v: AccountType) =>
@@ -262,7 +268,9 @@ const AccountForm = ({
             </div>
 
             <Field>
-              <Label htmlFor="price">Giá bán <span className="text-red-500">*</span></Label>
+              <Label htmlFor="price">
+                Giá bán <span className="text-red-500">*</span>
+              </Label>
               <div className="relative">
                 <Input
                   type="number"
@@ -309,7 +317,9 @@ const AccountForm = ({
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field>
-                  <Label>Tên đăng nhập <span className="text-red-500">*</span></Label>
+                  <Label>
+                    Tên đăng nhập <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     type="text"
                     value={formData.loginInfo.username}
@@ -328,7 +338,9 @@ const AccountForm = ({
                   />
                 </Field>
                 <Field>
-                  <Label>Mật khẩu <span className="text-red-500">*</span></Label>
+                  <Label>
+                    Mật khẩu <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     type="text"
                     value={formData.loginInfo.password}
@@ -442,7 +454,11 @@ const AccountForm = ({
             >
               Hủy
             </Button>
-            <Button type="submit" className="w-full sm:w-auto" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

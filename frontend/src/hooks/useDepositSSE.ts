@@ -37,7 +37,7 @@ export const useDepositSSE = (
         console.log("[SSE] Received deposit update:", data);
 
         // Hiển thị toast thông báo
-        if (data.status === "PAID" || data.status === "SUCCESS") {
+        if (data.status === "PAID") {
           toast.success(data.message || "Nạp tiền thành công", {
             description: `Số tiền ${data.amount?.toLocaleString("vi-VN")}đ `,
             duration: 5000,

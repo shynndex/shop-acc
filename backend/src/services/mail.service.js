@@ -12,7 +12,7 @@ export const sendVerificationEmail = async (email, token, displayName) => {
     const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: "✅ Xác thực tài khoản ShopSam",
+      subject: " Xác thực tài khoản ShopSam",
       html: `
         <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;">
           <div style="text-align: center; margin-bottom: 24px;">

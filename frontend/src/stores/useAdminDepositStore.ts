@@ -28,6 +28,8 @@ export const useAdminDepositStore = create<AdminDepositState>((set, get) => ({
         loading: false,
       });
       toast.error("Lỗi khi tải danh sách giao dịch");
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -36,7 +38,7 @@ export const useAdminDepositStore = create<AdminDepositState>((set, get) => ({
     try {
       const updated = await depositService.updateStatus(id, payload);
       toast.success(
-        payload.status === "PAID" || payload.status === "SUCCESS"
+        payload.status === "PAID"
           ? "Đã duyệt thành công"
           : "Đã từ chối giao dịch",
       );
@@ -46,12 +48,11 @@ export const useAdminDepositStore = create<AdminDepositState>((set, get) => ({
         deposits: state.deposits.map((d) => (d._id === id ? updated : d)),
         loading: false,
       }));
-
       return updated;
-    } catch (error) {
-      toast.error("Lỗi khi cập nhật trạng thái giao dịch");
-    } finally {
-      set({ loading: false });
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      toast.error("Lỗi khi cập nhật trạng thái");
+      return null;
     }
   },
 

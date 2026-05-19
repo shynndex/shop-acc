@@ -21,6 +21,7 @@ export const adminRoutes = (
       <Route index element={<AdminDashboard />} />
       {/* <Route path="deposits" element={<AdminDeposits />} /> */}
       <Route path="accounts" element={<AdminAccounts />} />
+
       {/* <Route path="users" element={<AdminUsers />} /> */}
       {/* <Route path="configuration" element={<AdminConfig />} /> */}
     </Route>

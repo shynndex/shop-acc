@@ -1,4 +1,4 @@
-import type { Account } from "@/types/admin/account";
+import type { Account } from "@/types/admin/account.type";
 import { AccountColumns } from "@/components/admin/accounts/AccountColumns";
 import {
   DropdownMenu,
@@ -16,6 +16,8 @@ import {
   Trash2,
 } from "lucide-react";
 import DataTable from "@/components/admin/shared/DataTable/DataTable";
+import { useMemo } from "react";
+import type { CellContext } from "@tanstack/react-table";
 
 interface AccountTableProps {
   accounts: Account[];
@@ -43,58 +45,65 @@ const AccountTable = ({
   onDelete,
 }: AccountTableProps) => {
   // Tiêm logic handlers vào cột Actions
-  const columnsWithHandlers = AccountColumns.map((col) => {
-    if (col.id === "actions") {
-      return {
-        ...col,
-        cell: ({ row }) => {
-          const account = row.original;
+  const columnsWithHandlers = useMemo(
+    () =>
+      AccountColumns.map((col) => {
+        if (col.id === "actions") {
+          return {
+            ...col,
+            cell: ({ row }: CellContext<Account, unknown>) => {
+              const account = row.original;
 
-          return (
-            <div className="flex justify-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[160px]">
-                  <DropdownMenuItem onClick={() => onEdit?.(account._id)}>
-                    <Edit className="mr-2 size-4" /> Chỉnh sửa
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      onToggleStatus?.(account._id, !account.isActive)
-                    }
-                    className={
-                      account.isActive ? "text-orange-600" : "text-green-600"
-                    }
-                  >
-                    {account.isActive ? (
-                      <ToggleLeft className="mr-2 size-4" />
-                    ) : (
-                      <ToggleRight className="mr-2 size-4" />
-                    )}
-                    {account.isActive ? "Ẩn" : "Hiển thị"}
-                  </DropdownMenuItem>
+              return (
+                <div className="flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[160px]">
+                      <DropdownMenuItem onClick={() => onEdit?.(account._id)}>
+                        <Edit className="mr-2 size-4" /> Chỉnh sửa
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          onToggleStatus?.(account._id, !account.isActive)
+                        }
+                        className={
+                          account.isActive
+                            ? "text-orange-600"
+                            : "text-green-600"
+                        }
+                      >
+                        {account.isActive ? (
+                          <ToggleLeft className="mr-2 size-4" />
+                        ) : (
+                          <ToggleRight className="mr-2 size-4" />
+                        )}
+                        {account.isActive ? "Ẩn" : "Hiển thị"}
+                      </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                      <DropdownMenuSeparator />
 
-                  <DropdownMenuItem
-                    onClick={() => onDelete?.(account._id)}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <Trash2 className="mr-2 size-4" /> Xóa
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          );
-        },
-      };
-    }
-    return col;
-  });
+                      <DropdownMenuItem
+                        onClick={() => onDelete?.(account._id)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="mr-2 size-4" /> Xóa
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              );
+            },
+          };
+        }
+        return col;
+      }),
+    [onEdit, onToggleStatus, onDelete],
+  );
+
   return (
     <DataTable<Account, any>
       columns={columnsWithHandlers}
