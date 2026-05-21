@@ -18,6 +18,7 @@ const statusOptions = [
   { value: "", label: "Tất cả trạng thái" },
   { value: "PENDING", label: "Chờ xử lý" },
   { value: "PAID", label: "Đã thanh toán" },
+  { value: "SUCCESS", label: "Thành công" },
   { value: "FAILED", label: "Thất bại" },
   { value: "CANCELLED", label: "Đã hủy" },
 ];

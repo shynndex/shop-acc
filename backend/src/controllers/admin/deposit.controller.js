@@ -4,6 +4,7 @@ import {
   adaptBankDeposit,
   adaptCardDeposit,
 } from "../../utils/deposit.adapter";
+import { User } from "../../models/client/User.model.js";
 
 export const listDeposits = async (req, res) => {
   try {
@@ -118,3 +119,196 @@ export const listDeposits = async (req, res) => {
     });
   }
 };
+
+export const getDepositById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    let deposit = await CardDeposit.findById(id).populate(
+      "user",
+      "username email balance",
+    );
+
+    // Try CardDeposit first
+    if (deposit) {
+      return res.json({
+        success: true,
+        message: "Lấy thông tin giao dịch thành công",
+        data: { deposit: adaptCardDeposit(deposit) },
+      });
+    }
+
+    deposit = await BankDeposit.findById(id)
+      .populate("user", "username email balance")
+      .populate("bank", "bankName accountNumber accountHolder");
+
+    if (deposit) {
+      return res.json({
+        success: true,
+        message: "Lấy thông tin giao dịch thành công",
+        data: { deposit: adaptBankDeposit(deposit) },
+      });
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy giao dịch",
+    });
+  } catch (error) {
+    console.error("[getDepositById] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy thông tin giao dịch",
+    });
+  }
+};
+
+export const updateDepositStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNote } = req.body;
+    const adminId = req.admin?._id;
+
+    const validTransitions = {
+      PENDING: ["SUCCESS", "FAILED", "CANCELLED"],
+      // PAID chỉ cho bank, SUCCESS chỉ cho card
+    };
+
+    // Try CardDeposit first
+    let deposit = await CardDeposit.findById(id);
+    let isCard = true;
+
+    if (!deposit) {
+      // Try BankDeposit
+      deposit = await BankDeposit.findById(id);
+      isCard = false;
+    }
+
+    if (!deposit) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy giao dịch",
+      });
+    }
+
+    if (!validTransitions[deposit.status]?.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể chuyển từ ${deposit.status} sang ${status}`,
+      });
+    }
+
+    // Nếu SUCCESS/PAID → cộng balance cho user
+    if(status === "SUCCESS" || status = "PAID") {
+      const amountToAdd = isCard ? deposit.receivedAmount : deposit.amount
+
+      await User.findByIdAndUpdate(deposit.user, {
+        $inc: { balance: amountToAdd },
+      });
+    }
+
+    if(isCard) {
+      deposit.status = status;
+      if(adminNote) deposit.adminNote = adminNote;
+    }
+    else {
+      deposit.status = status;
+      if(adminNote) {
+        deposit.transactionData = {
+          ...(deposit.transactionData || {}),
+          adminNote,
+        }
+      }
+    }
+
+      await deposit.save()
+
+      const adapted = isCard ? adaptCardDeposit(deposit) : adaptBankDeposit(deposit)
+
+      res.json({
+        success:true,
+        message:`Đã cập nhật trạng thái thành ${status}`,
+        data:{deposit:adapted}
+      })
+
+  } catch (error) {
+     console.error("[updateDepositStatus] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi cập nhật trạng thái",
+    });
+  }
+};
+
+xport const exportDepositsCsv = async (req, res) => {
+  try {
+    const { status, type, dateFrom, dateTo } = req.query;
+    const { createObjectWriter } = await import("csv-writer"); // Dynamic import để tránh bundle lớn
+
+    // Build filters (giống listDeposits)
+    const cardFilter = {};
+    const bankFilter = {};
+    if (status) { cardFilter.status = status; bankFilter.status = status; }
+    if (dateFrom || dateTo) {
+      const range = {};
+      if (dateFrom) range.$gte = new Date(dateFrom);
+      if (dateTo) range.$lte = new Date(dateTo);
+      cardFilter.createdAt = range;
+      bankFilter.createdAt = range;
+    }
+    if (type === "card") bankFilter._id = { $exists: false };
+    if (type === "bank") cardFilter._id = { $exists: false };
+
+    // Fetch all (no pagination for export)
+    const [cardDocs, bankDocs] = await Promise.all([
+      CardDeposit.find(cardFilter).populate("user", "username email").lean(),
+      BankDeposit.find(bankFilter).populate("user", "username email").populate("bank", "bankName accountNumber").lean(),
+    ]);
+
+    // Adapt + merge
+    const allRows = [
+      ...cardDocs.map(adaptCardDeposit),
+      ...bankDocs.map(adaptBankDeposit),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // CSV headers
+    const csvWriter = createObjectWriter({
+      path: `/tmp/deposits-${Date.now()}.csv`,
+      header: [
+        { id: "_id", title: "ID" },
+        { id: "userUsername", title: "Username" },
+        { id: "userEmail", title: "Email" },
+        { id: "type", title: "Loại" },
+        { id: "amount", title: "Số tiền (đ)" },
+        { id: "fee", title: "Phí (đ)" },
+        { id: "status", title: "Trạng thái" },
+        { id: "bankInfo.bankName", title: "Ngân hàng" },
+        { id: "bankInfo.referenceCode", title: "Mã GD" },
+        { id: "cardInfo.provider", title: "Nhà mạng" },
+        { id: "cardInfo.serial", title: "Serial" },
+        { id: "adminNote", title: "Ghi chú admin" },
+        { id: "createdAt", title: "Thời gian" },
+      ],
+    });
+
+    await csvWriter.writeRecords(allRows);
+
+    // Send file
+    const fs = await import("fs");
+    const filePath = csvWriter.path;
+    
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="deposits-${new Date().toISOString().split("T")[0]}.csv"`);
+    
+    const stream = fs.createReadStream(filePath);
+    stream.pipe(res);
+    
+    stream.on("end", () => {
+      fs.unlinkSync(filePath); // Cleanup
+    });
+
+  } catch (error) {
+    console.error("[exportDepositsCsv] Error:", error);
+    res.status(500).json({ success: false, message: "Lỗi khi export CSV" });
+  }
+}

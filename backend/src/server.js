@@ -48,6 +48,7 @@ app.use("/api/admin/auth", adminAuthRoute);
 app.use("/api/admin/accounts", adminAccountRoute);
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 app.use("/api/admin/upload", uploadRoute);
+app.use("/api/admin/deposits", depositRoutes);
 
 connectDB()
   .then(() => {

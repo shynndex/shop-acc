@@ -38,7 +38,7 @@ export const useAdminDepositStore = create<AdminDepositState>((set, get) => ({
     try {
       const updated = await depositService.updateStatus(id, payload);
       toast.success(
-        payload.status === "PAID"
+        payload.status === "PAID" || payload.status === "SUCCESS"
           ? "Đã duyệt thành công"
           : "Đã từ chối giao dịch",
       );
