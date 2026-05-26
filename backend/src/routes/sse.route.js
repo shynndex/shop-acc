@@ -1,17 +1,19 @@
 import { protectedRoute } from "../middlewares/client/auth.middleware.js";
 import express from "express";
 import { addSSEClient } from "../utils/sse.js";
+import { sseLimiter } from "../middlewares/rateLimiter.middleware.js";
 
 const router = express.Router();
 
 /**
  * Endpoint để frontend kết nối lắng nghe event
- * GET /api/sse/stream
+ * GET /api/sse/stream — throttled to prevent reconnection storms
  * Header: Authorization: Bearer <token>
  */
 
 router.get(
   "/stream",
+  sseLimiter,
   (req, res, next) => {
     let token = req.headers["authorization"]?.split(" ")[1];
 

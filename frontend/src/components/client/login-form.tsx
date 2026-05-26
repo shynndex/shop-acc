@@ -12,7 +12,8 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
+import { authService } from "@/services/client/authService";
 
 export function LoginForm({
   className,
@@ -23,25 +24,48 @@ export function LoginForm({
   const { signIn, loading } = useAuthStore();
 
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
+  const handleResend = async () => {      const email = unverifiedEmail || formData.email.trim();
+    if (!email) {
+      toast.error("Vui lòng nhập email để gửi lại link xác thực");
+      return;
+    }
+    try {
+      setResending(true);
+      await authService.resendVerify(email);
+      toast.success("Đã gửi lại email xác thực. Vui lòng kiểm tra hộp thư.");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Có lỗi khi gửi lại email xác thực",
+      );
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const email = formData.username.trim();
+    const email = formData.email.trim();
     const password = formData.password.trim();
 
     if (!email || !password) {
       toast.error("Vui lòng nhập đầy đủ email và mật khẩu");
       return;
     }
+
+    // Reset unverified state khi thử lại
+    setUnverifiedEmail(null);
 
     try {
       const success = await signIn({
@@ -56,10 +80,18 @@ export function LoginForm({
         const from = location.state?.from?.pathname || "/";
         navigate(from, { replace: true });
       }
-    } catch (error) {
-      toast.error(
-        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.",
-      );
+    } catch (error: any) {
+      // Nếu lỗi 403 (email chưa xác thực), hiển thị nút gửi lại
+      if (error?.response?.status === 403) {
+        setUnverifiedEmail(email);
+        toast.error(
+          "Email chưa được xác thực. Vui lòng kiểm tra hộp thư hoặc gửi lại link xác thực.",
+        );
+      } else {
+        toast.error(
+          "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.",
+        );
+      }
     }
   };
 
@@ -85,6 +117,7 @@ export function LoginForm({
                 <FieldLabel>Email</FieldLabel>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="Email"
                   className="border-blue-700 focus-visible:ring-blue-600"
@@ -131,6 +164,28 @@ export function LoginForm({
                   </Button>
                 </div>
               </Field>
+              {unverifiedEmail && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-amber-800 font-medium">
+                    ✉️ Email chưa được xác thực
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    Vui lòng kiểm tra hộp thư <strong>{unverifiedEmail}</strong>{" "}
+                    (kể cả mục Spam) hoặc nhấn nút bên dưới để gửi lại link xác thực.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-amber-300 text-amber-800 hover:bg-amber-100"
+                    onClick={handleResend}
+                    disabled={resending}
+                  >
+                    <RefreshCw className={`mr-2 size-4 ${resending ? "animate-spin" : ""}`} />
+                    {resending ? "Đang gửi..." : "Gửi lại email xác thực"}
+                  </Button>
+                </div>
+              )}
+
               <Field>
                 <Button
                   type="submit"

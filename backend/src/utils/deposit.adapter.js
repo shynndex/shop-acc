@@ -41,7 +41,7 @@ export const adaptBankDeposit = (bankDeposit) => {
       accountHolder: bankDeposit.bank?.accountHolder,
       referenceCode: bankDeposit.referenceCode,
     },
-    adminNote: bankDeposit.transactionData?.adminNote,
+    adminNote: bankDeposit.adminNote,
     payosOrderId: bankDeposit.payosOrderId,
     transactionData: bankDeposit.transactionData,
     createdAt: bankDeposit.createdAt,

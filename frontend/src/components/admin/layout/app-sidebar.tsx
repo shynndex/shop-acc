@@ -12,11 +12,13 @@ import {
   GalleryVerticalEnd,
   LayoutDashboard,
   Map,
+  MessageSquareText,
   PieChart,
   Settings,
   Settings2,
   ShieldCheck,
   SquareTerminal,
+  Tag,
   User,
 } from "lucide-react";
 
@@ -45,12 +47,21 @@ const adminNav = [
     title: "Giao dịch nạp tiền",
     url: "/admin/deposits",
     icon: CreditCard,
-    items: [
-      { title: "Tất cả", url: "/admin/deposits" },
-      { title: "Chờ xử lý", url: "/admin/deposits?status=PENDING" },
-      { title: "Thành công", url: "/admin/deposits?status=PAID" },
-      { title: "Thất bại", url: "/admin/deposits?status=FAILED" },
-    ],
+  },
+  {
+    title: "Đối soát",
+    url: "/admin/reconciliation",
+    icon: PieChart,
+  },
+  {
+    title: "Mã giảm giá",
+    url: "/admin/giftcodes",
+    icon: Tag,
+  },
+  {
+    title: "Đánh giá",
+    url: "/admin/reviews",
+    icon: MessageSquareText,
   },
   {
     title: "Người dùng",

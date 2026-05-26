@@ -9,10 +9,12 @@ import {
   uploadImage,
 } from "../../controllers/admin/cloudinary.controller.js";
 import upload from "../../middlewares/admin/upload.middleware.js";
+import { adminLimiter } from "../../middlewares/rateLimiter.middleware.js";
 
 const router = express.Router();
 
-// Tất cả route đều cần admin authentication
+// 🛡️ Rate limit + auth
+router.use(adminLimiter);
 router.use(adminProtect);
 
 // Upload 1 ảnh

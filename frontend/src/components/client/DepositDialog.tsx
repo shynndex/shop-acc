@@ -12,19 +12,15 @@ import {
 } from "../ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
-  AxeIcon,
   BadgeAlert,
-  Clock,
   Copy,
   CreditCard,
-  Icon,
   Loader2,
   QrCode,
-  RotateCcw,
-  Smartphone,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Separator } from "../ui/separator";
 import {
   Select,
   SelectContent,
@@ -44,19 +40,17 @@ import {
 } from "../ui/card";
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
 } from "../ui/field";
 import {
   Item,
-  ItemActions,
   ItemContent,
-  ItemDescription,
   ItemMedia,
   ItemTitle,
 } from "../ui/item";
+import GiftCodeInput from "@/components/client/GiftCodeInput";
+import type { GiftCodeResult } from "@/components/client/GiftCodeInput";
 import { depositService } from "@/services/client/depositService";
 import type { PaymentLinkData } from "@/types/deposit";
 import { formatVND } from "@/lib/utils";
@@ -82,6 +76,8 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
   const [pin, setPin] = useState("");
   const [receivedAmount, setReceivedAmount] = useState<number | null>(null);
   const [feeLoading, setFeeLoading] = useState(false);
+  // Giftcode state
+  const [discountCode, setDiscountCode] = useState<string | null>(null);
 
   const quickAmounts = [10000, 50000, 100000, 200000, 500000];
 
@@ -89,13 +85,14 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
     const isMatch =
       data.referenceCode === paymentInfo?.referenceCode ||
       data.depositId === activeDepositId;
-    // Chỉ xử lý nếu event khớp với đơn đang chờ trong dialog
     if (isMatch) {
       if (data.status === "PAID") {
         toast.success(data.message || "Nạp tiền thành công", {
           description: `Số tiền ${data.amount?.toLocaleString("vi-VN")}đ`,
           duration: 5000,
         });
+        // Cập nhật số dư
+        updateUser({ balance: (user?.balance || 0) + (data.amount || 0) });
       }
       setTimeout(() => {
         handleClose();
@@ -136,10 +133,6 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
       toast.error("Vui lòng nhập đúng số serial và mã thẻ");
       return;
     }
-    if (serial.length < 10 || pin.length < 8) {
-      toast.error("Serial/Pin không hợp lệ");
-      return;
-    }
     setLoading(true);
     try {
       const data = await depositService.submitCardDeposit({
@@ -147,10 +140,11 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
         amount: parseInt(cardAmount),
         serial: serial.toUpperCase(),
         pin: pin.trim(),
+        discountCode: discountCode || undefined,
       });
 
       if (data.success) {
-        setActiveDepositId(data.data.depositId); // Quan trọng để SSE khớp
+        setActiveDepositId(data.data.depositId);
         toast.info("Yêu cầu nạp thẻ đã được gửi. Vui lòng đợi xử lý");
       }
     } catch (error) {
@@ -175,7 +169,7 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
     setLoading(true);
 
     try {
-      const data = await depositService.createPaymentQR(amount);
+      const data = await depositService.createPaymentQR(amount, discountCode || undefined);
       setActiveDepositId(data.referenceCode);
       setPaymentInfo(data);
       toast.info("Đã tạo mã QR. Vui lòng quét để thanh toán");
@@ -185,6 +179,16 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDiscountApply = (result: GiftCodeResult) => {
+    if (result.valid && result.code) {
+      setDiscountCode(result.code);
+    }
+  };
+
+  const handleDiscountRemove = () => {
+    setDiscountCode(null);
   };
 
   const handleClose = () => {
@@ -197,6 +201,7 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
     setPin("");
     setReceivedAmount(null);
     setActiveDepositId(null);
+    setDiscountCode(null);
   };
 
   return (
@@ -213,7 +218,7 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
           <DialogTitle>Nạp tiền vào ví</DialogTitle>
           <DialogDescription>
             Số dư:
-            <span className="font-bold text-green-600">
+            <span className="font-bold text-green-600 ml-1">
               {formatVND(user?.balance || 0)}
             </span>
           </DialogDescription>
@@ -221,15 +226,15 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
 
         <Tabs defaultValue="bank" className="w-full flex flex-col">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="bank" className="gap-2">
+            <TabsTrigger value="bank" className="gap-1">
               <QrCode className="h-4 w-4" /> Chuyển khoản
             </TabsTrigger>
-            <TabsTrigger value="card" className="gap-2">
-              <Smartphone className="h-4 w-4" /> Thẻ cào
+            <TabsTrigger value="card" className="gap-1">
+              <CreditCard className="h-4 w-4" /> Thẻ cào
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value={"bank"}>
+          <TabsContent value="bank">
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl font-bold">
@@ -242,25 +247,29 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
 
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Cột trái: QR Code */}
                   <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-lg">
-                    <QRCodeSVG
-                      value={paymentInfo?.qrImage || ""}
-                      size={200}
-                      level={"L"}
-                      imageSettings={{
-                        src: "../../public/viet_qr_1.png",
-                        height: 40,
-                        width: 40,
-                        excavate: true, // quan trọng
-                      }}
-                    />
+                    {paymentInfo?.qrImage ? (
+                      <QRCodeSVG
+                        value={paymentInfo.qrImage}
+                        size={200}
+                        level="L"
+                        imageSettings={{
+                          src: "../../public/viet_qr_1.png",
+                          height: 40,
+                          width: 40,
+                          excavate: true,
+                        }}
+                      />
+                    ) : (
+                      <div className="size-[200px] flex items-center justify-center bg-gray-100 rounded-lg">
+                        <QrCode className="size-16 text-gray-300" />
+                      </div>
+                    )}
                     <p className="text-sm text-center text-muted-foreground mt-3">
                       Quét mã để nạp tiền tự động
                     </p>
                   </div>
 
-                  {/* Cột phải: Form nhập liệu & thông tin */}
                   <div className="space-y-5">
                     <div>
                       <div className="text-lg font-bold mb-3">
@@ -293,109 +302,121 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
                           placeholder="Nhập số tiền (tối thiểu 10.000đ)"
                           value={bankAmount ? formatVND(bankAmount) : ""}
                           onChange={(e) => {
-                            const raw = e.target.value.replace(/\D/g, ""); // chỉ giữ số
+                            const raw = e.target.value.replace(/\D/g, "");
                             setBankAmount(raw);
                           }}
                           className="pr-12"
                           min={10000}
-                          step={1000}
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
                           đ
                         </span>
                       </div>
-
-                      <Field>
-                        <Button
-                          type="submit"
-                          variant={"secondary"}
-                          className={"cursor-pointer"}
-                          onClick={handleCreatePayment}
-                        >
-                          Tạo mã chuyển khoản
-                        </Button>
-                      </Field>
+                      <Button
+                        type="submit"
+                        variant="secondary"
+                        className="cursor-pointer mt-2"
+                        onClick={handleCreatePayment}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang tạo...</>
+                        ) : (
+                          "Tạo mã chuyển khoản"
+                        )}
+                      </Button>
                     </Field>
 
-                    <div className="pt-2 border-t">
-                      <div className="text-lg font-semibold mb-3">
-                        Thông tin chuyển khoản:
+                    {paymentInfo && (
+                      <div className="pt-2 border-t">
+                        <div className="text-lg font-semibold mb-3">
+                          Thông tin chuyển khoản:
+                        </div>
+                        <Field data-disabled>
+                          <FieldLabel>Chủ tài khoản</FieldLabel>
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <Input
+                              value={paymentInfo?.accountName}
+                              disabled
+                              className="flex-1 disabled:opacity-100"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() =>
+                                handleCopy(
+                                  paymentInfo?.accountName || "",
+                                  "Chủ tài khoản",
+                                )
+                              }
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <FieldLabel>Số tài khoản</FieldLabel>
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <Input
+                              value={paymentInfo?.accountNumber || ""}
+                              disabled
+                              className="flex-1 disabled:opacity-100"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() =>
+                                handleCopy(
+                                  paymentInfo?.accountNumber || "",
+                                  "Số tài khoản",
+                                )
+                              }
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <FieldLabel>Ngân hàng</FieldLabel>
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <Input
+                              value={paymentInfo?.bankName || ""}
+                              disabled
+                              className="flex-1 disabled:opacity-100"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() =>
+                                handleCopy(
+                                  paymentInfo?.bankName || "",
+                                  "Ngân hàng",
+                                )
+                              }
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </Field>
                       </div>
-                      <Field data-disabled>
-                        <FieldLabel>Chủ tài khoản</FieldLabel>
-                        <div className="flex items-center justify-between gap-2 w-full">
-                          <Input
-                            value={paymentInfo?.accountName}
-                            disabled
-                            className="flex-1 disabled:opacity-100"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() =>
-                              handleCopy(
-                                paymentInfo?.accountName || "",
-                                "Chủ tài khoản",
-                              )
-                            }
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <FieldLabel>Số tài khoản</FieldLabel>
-                        <div className="flex items-center justify-between gap-2 w-full">
-                          <Input
-                            value={paymentInfo?.accountNumber || ""}
-                            disabled
-                            className="flex-1 disabled:opacity-100"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() =>
-                              handleCopy(
-                                paymentInfo?.accountNumber || "",
-                                "Số tài khoản",
-                              )
-                            }
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <FieldLabel>Ngân hàng</FieldLabel>
-                        <div className="flex items-center justify-between gap-2 w-full">
-                          <Input
-                            value={paymentInfo?.bankName || ""}
-                            disabled
-                            className="flex-1 disabled:opacity-100"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() =>
-                              handleCopy(
-                                paymentInfo?.bankName || "",
-                                "Ngân hàng",
-                              )
-                            }
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </Field>
-                    </div>
+                    )}
                   </div>
+                </div>
+
+                <div className="pt-4 border-t mt-4">
+                  <h4 className="text-sm font-semibold mb-3">Mã giảm giá</h4>
+                  <GiftCodeInput
+                    amount={parseInt(bankAmount) || 0}
+                    onApply={handleDiscountApply}
+                    onRemove={handleDiscountRemove}
+                  />
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value={"card"}>
+          <TabsContent value="card">
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl font-bold">
@@ -417,14 +438,13 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
                     </ItemTitle>
                   </ItemContent>
                 </Item>
-                <FieldGroup className={"space-y-4 mt-4"}>
+                <FieldGroup className="space-y-4 mt-4">
                   <Field>
                     <FieldLabel>Loại thẻ</FieldLabel>
                     <Select value={cardType} onValueChange={setCardType}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Chọn loại thẻ" />
                       </SelectTrigger>
-
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel>Chọn loại thẻ</SelectLabel>
@@ -442,7 +462,6 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Chọn mệnh giá" />
                         </SelectTrigger>
-
                         <SelectContent>
                           <SelectGroup>
                             <SelectLabel>Chọn mệnh giá</SelectLabel>
@@ -460,7 +479,6 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
                     </Field>
                     <Field>
                       <FieldLabel>Thực nhận</FieldLabel>
-
                       <div className="relative w-full">
                         <Input
                           value={
@@ -497,9 +515,9 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
                   </Field>
                 </FieldGroup>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col">
                 <Button
-                  className={"w-full"}
+                  className="w-full"
                   disabled={
                     feeLoading ||
                     loading ||
@@ -514,16 +532,21 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang xử
-                      lý...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang xử lý...
                     </>
                   ) : (
                     <>
                       <CreditCard className="mr-2 h-4 w-4" /> Nạp thẻ
                     </>
                   )}
-                  <CreditCard className="mr-2 h-4 w-4" /> Nạp thẻ
                 </Button>
+                <div className="w-full mt-4 pt-4 border-t">
+                  <GiftCodeInput
+                    amount={parseInt(cardAmount) || 0}
+                    onApply={handleDiscountApply}
+                    onRemove={handleDiscountRemove}
+                  />
+                </div>
               </CardFooter>
             </Card>
           </TabsContent>

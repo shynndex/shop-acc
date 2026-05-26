@@ -81,6 +81,7 @@ export interface CardDepositRequest {
   amount: number;
   serial: string;
   pin: string;
+  discountCode?: string;
 }
 
 export interface CardDepositResponse {
@@ -109,5 +110,48 @@ export interface DepositStatusResponse {
     message: string;
     receivedAmount?: number;
     isAmountMismatch?: boolean;
+  };
+}
+
+// ─── PayOS Purchase ──────────────────────────────────────────────
+
+export interface PayOSPurchaseRequest {
+  accountId: string;
+  discountCode?: string;
+}
+
+export interface PayOSPurchaseResponse {
+  success: boolean;
+  message: string;
+  data: {
+    bankDepositId: string;
+    orderId: string;
+    transactionId: string;
+    qrImage: string;
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    referenceCode: string;
+    amount: number;
+    originalPrice: number;
+    discount?: {
+      code: string;
+      type: string;
+      value: number;
+      amount: number;
+    } | null;
+    expiresAt: string;
+    accountTitle: string;
+    instruction: string;
+  };
+}
+
+export interface PayOSCheckResponse {
+  success: boolean;
+  data: {
+    status: "PENDING" | "PAID" | "CANCELLED" | "FAILED";
+    message: string;
+    order?: any;
+    expiresAt?: string;
   };
 }

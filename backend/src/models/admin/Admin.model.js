@@ -10,6 +10,10 @@ const adminSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
     loginIP: { type: String },
+
+    // ── Brute-force protection (ẩn khỏi API mặc định) ──────────────────────
+    failedLoginAttempts: { type: Number, default: 0, select: false },
+    lockoutUntil: { type: Date, default: null, select: false },
   },
   {
     timestamps: true,

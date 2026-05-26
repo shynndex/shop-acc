@@ -2,6 +2,19 @@ import mongoose from "mongoose";
 
 const BankDepositSchema = new mongoose.Schema(
   {
+    // Loại giao dịch: "deposit" (nạp tiền) | "purchase" (mua trực tiếp qua PayOS)
+    type: {
+      type: String,
+      enum: ["deposit", "purchase"],
+      default: "deposit",
+      index: true,
+    },
+    // Order liên quan (nếu type === "purchase")
+    order: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      default: null,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -44,14 +57,38 @@ const BankDepositSchema = new mongoose.Schema(
       sparse: true,
       index: true,
     },
+    adminNote: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     transactionData: {
       type: mongoose.Schema.Types.Mixed,
     },
+
+    // Thông tin giảm giá nếu có
+    discount: {
+      code: { type: String, default: null },
+      type: { type: String, enum: ["percent", "fixed", null], default: null },
+      value: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 },
+    },
+
+    // Reserve info (cho type === "purchase")
+    reservedAt: { type: Date, default: null },
+    expiresAt: { type: Date, default: null }, // 15 phút sau reservedAt
+
+    // ── Optimistic locking ─────────────────────────────────────────
+    // Incremented on every status-changing write.
+    // Used for CAS (Compare-And-Swap) in finalizePurchase et al.
+    version: { type: Number, default: 0 },
   },
   {
     timestamps: true,
   },
 );
+
+BankDepositSchema.index({ status: 1, createdAt: -1 });
 
 const BankDeposit = mongoose.model("BankDeposit", BankDepositSchema);
 export default BankDeposit;

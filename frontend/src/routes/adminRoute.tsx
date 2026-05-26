@@ -1,14 +1,15 @@
 import AdminLayout from "@/components/admin/layout/AppLayout";
-import { AdminProtectedRoute } from "@/components/admin/routes/AdminProtectedRoute";
 import { lazy } from "react";
-import { Navigate, Route } from "react-router-dom";
+import { Route } from "react-router-dom";
 
 const AdminLogin = lazy(() => import("@/pages/admin/Login"));
-// const AdminDeposits = lazy(() => import("@/pages/admin/Deposits"));
-// const AdminUsers = lazy(() => import("@/pages/admin/Users"));
-// const AdminConfig = lazy(() => import("@/pages/admin/Config"));
+const AdminDeposits = lazy(() => import("@/pages/admin/Deposit"));
 const AdminDashboard = lazy(() => import("@/pages/admin/Dashboard"));
 const AdminAccounts = lazy(() => import("@/pages/admin/Accounts"));
+const AdminGiftcodes = lazy(() => import("@/pages/admin/Giftcodes"));
+const AdminReviews = lazy(() => import("@/pages/admin/Reviews"));
+const AdminReconciliation = lazy(() => import("@/pages/admin/Reconciliation"));
+const AdminUserBalance = lazy(() => import("@/pages/admin/UserBalance"));
 
 export const adminRoutes = (
   <Route path="/admin">
@@ -19,14 +20,13 @@ export const adminRoutes = (
     {/* <Route element={<AdminProtectedRoute />}> */}
     <Route element={<AdminLayout />}>
       <Route index element={<AdminDashboard />} />
-      {/* <Route path="deposits" element={<AdminDeposits />} /> */}
+      <Route path="deposits" element={<AdminDeposits />} />
       <Route path="accounts" element={<AdminAccounts />} />
-
-      {/* <Route path="users" element={<AdminUsers />} /> */}
-      {/* <Route path="configuration" element={<AdminConfig />} /> */}
+      <Route path="giftcodes" element={<AdminGiftcodes />} />
+      <Route path="reviews" element={<AdminReviews />} />
+      <Route path="reconciliation" element={<AdminReconciliation />} />
+      <Route path="users" element={<AdminUserBalance />} />
     </Route>
     {/* </Route> */}
-
-    {/* <Route path="*" element={<Navigate to="/admin" replace />} /> */}
   </Route>
 );

@@ -66,6 +66,14 @@ const CardDepositSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+
+    // Thông tin giảm giá nếu có
+    discount: {
+      code: { type: String, default: null },
+      type: { type: String, enum: ["percent", "fixed", null], default: null },
+      value: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true,

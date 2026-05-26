@@ -42,7 +42,18 @@ export interface GetAccountsParams {
   type?: string; // Filter theo loại: "trang", "reg", "random"...
   minPrice?: number;
   maxPrice?: number;
+  rank?: string; // Filter theo rank
+  minSkins?: number; // Filter theo số skin tối thiểu
+  minHeroes?: number; // Filter theo số tướng tối thiểu
+  search?: string; // Tìm kiếm theo tên hoặc mã code
   sortBy?: "price_asc" | "price_desc" | "newest";
+}
+
+export interface FilterOptions {
+  ranks: string[];
+  skinRange: { min: number; max: number } | null;
+  heroRange: { min: number; max: number } | null;
+  priceRange: { min: number; max: number } | null;
 }
 
 //  Type cho checkAuth: có thể trả null nếu chưa login

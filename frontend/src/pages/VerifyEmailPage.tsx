@@ -2,12 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { authService } from "@/services/client/authService";
-import { CheckCircle, Link, Loader2, RefreshCw, XCircle } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { CheckCircle, Loader2, Mail, RefreshCw, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 const VerifyEmailPage = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading",
@@ -15,6 +16,7 @@ const VerifyEmailPage = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [resending, setResending] = useState(false);
   const [email, setEmail] = useState("");
+  const [countdown, setCountdown] = useState(5);
   const token = searchParams.get("token");
 
   useEffect(() => {
@@ -26,15 +28,31 @@ const VerifyEmailPage = () => {
       }
 
       try {
-        await authService.verifyEmail(token);
+        const response = await authService.verifyEmail(token);
         setStatus("success");
-      } catch (error) {
+        toast.success(response?.message || "Xác thực email thành công!");
+      } catch (error: any) {
         setStatus("error");
-        setErrorMsg("Xác thực email thất bại.");
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Xác thực email thất bại.";
+        setErrorMsg(message);
       }
     };
     verifyEmail();
   }, [token]);
+
+  // Auto-redirect đếm ngược khi xác thực thành công
+  useEffect(() => {
+    if (status === "success" && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (status === "success" && countdown === 0) {
+      navigate("/signin");
+    }
+  }, [status, countdown, navigate]);
 
   const handleResend = async () => {
     if (!email) {
@@ -43,14 +61,15 @@ const VerifyEmailPage = () => {
     }
     try {
       setResending(true);
-      await authService.resendVerify(email);
-      toast.success("Link xác thực đã được gửi lại.");
+      const response = await authService.resendVerify(email);
+      toast.success(
+        response?.message || "Link xác thực đã được gửi lại. Vui lòng kiểm tra email.",
+      );
       setEmail("");
     } catch (error: any) {
-      toast.error(
-        error?.response?.data?.message ||
-          "Có lỗi xảy ra khi gửi lại link xác thực.",
-      );
+      const message =
+        error?.response?.data?.message || "Có lỗi xảy ra khi gửi lại link xác thực.";
+      toast.error(message);
     } finally {
       setResending(false);
     }
@@ -72,18 +91,24 @@ const VerifyEmailPage = () => {
 
           {status === "success" && (
             <>
-              <CheckCircle className="h-16 w-16 mx-auto text-green-500" />
+              <CheckCircle className="size-16 mx-auto text-green-500" />
               <h2 className="text-2xl font-bold text-green-600">
                 Xác thực thành công!
               </h2>
               <p className="text-muted-foreground">
-                Tài khoản của bạn đã được kích hoạt.
+                Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ.
               </p>
-              <Link to="/login">
-                <Button className="w-full bg-green-600 hover:bg-green-700">
-                  Đăng nhập ngay
-                </Button>
-              </Link>
+              <div className="text-sm text-muted-foreground">
+                Tự động chuyển đến trang đăng nhập sau{" "}
+                <span className="font-bold text-blue-600">{countdown}</span> giây...
+              </div>
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700"
+                onClick={() => navigate("/signin")}
+              >
+                <Mail className="mr-2 size-4" />
+                Đăng nhập ngay
+              </Button>
             </>
           )}
 
@@ -96,29 +121,34 @@ const VerifyEmailPage = () => {
               <p className="text-muted-foreground">{errorMsg}</p>
 
               <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Nhập email bạn đã đăng ký để nhận link xác thực mới:
+                </p>
                 <Input
                   type="email"
-                  placeholder="Nhập email đã đăng ký"
+                  placeholder="example@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 <Button
-                  className={"w-full bg-blue-600 hover:bg-blue-700"}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
                   onClick={handleResend}
                   disabled={resending}
                 >
                   <RefreshCw
-                    className={`h-4 w-4 mr-2 ${resending ? "animate-spin" : ""}`}
+                    className={`mr-2 size-4 ${resending ? "animate-spin" : ""}`}
                   />
-                  Gửi lại link xác thực
+                  {resending ? "Đang gửi..." : "Gửi lại link xác thực"}
                 </Button>
               </div>
 
-              <Link to={"/login"}>
-                <Button variant="outline" className="w-full mt-2">
-                  Quay lại đăng nhập
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/signin")}
+              >
+                Quay lại đăng nhập
+              </Button>
             </>
           )}
         </CardContent>

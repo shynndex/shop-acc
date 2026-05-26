@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false },
     verificationToken: { type: String },
     verificationTokenExpiry: { type: Date },
+
+    // ── Brute-force protection (ẩn khỏi API mặc định) ──────────────────────
+    failedLoginAttempts: { type: Number, default: 0, select: false },
+    lockoutUntil: { type: Date, default: null, select: false },
   },
   {
     timestamps: true,

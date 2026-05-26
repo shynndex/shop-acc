@@ -7,7 +7,7 @@ import type { CategoryItem, GameCategory } from "@/types";
 // import viewAllGif from "@/assets/view-all.gif";
 
 //  Card con tái sử dụng
-const CategoryCard = ({
+export const CategoryCard = ({
   cat,
 }: {
   cat: CategoryItem;
@@ -16,7 +16,7 @@ const CategoryCard = ({
 
   return (
     <Card
-      className="overflow-hidden group cursor-pointer border-2 border-transparent  hover:shadow-xl transition-all"
+      className="overflow-hidden group cursor-pointer border-2 border-transparent hover:shadow-xl transition-all duration-300"
       onClick={(e) => {
         e.stopPropagation();
         navigate(`/tai-khoan/${cat.slug}`);

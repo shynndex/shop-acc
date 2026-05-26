@@ -20,6 +20,12 @@ export interface Account {
   attributes: Record<string, any>; // Rank, Skin, Tướng...
   images: string[];
   status: "available" | "sold" | "reserved";
+  isActive?: boolean;
+  isSold?: boolean;
+  rating?: {
+    avg: number;
+    count: number;
+  };
   createdAt: string;
   updatedAt?: string;
 }
@@ -27,7 +33,8 @@ export interface Account {
 export interface CategoryItem {
   id: string;
   name: string;
-  slug: string; // Dùng cho URL filter: ?game=lien-quan&type=trang
+  slug: string; // Dùng cho URL: /tai-khoan/:slug
+  typeValue: string; // Giá trị gửi lên backend cho field "type": "trang", "reg", "rlp"...
   image: string;
   priceFrom: number;
   stock: number;
@@ -61,6 +68,25 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   totalPages: number;
   currentPage: number;
   totalItems: number;
+}
+
+export interface Review {
+  _id: string;
+  user: {
+    _id: string;
+    username: string;
+    displayName?: string;
+    avatarUrl?: string;
+  };
+  account: string | { _id: string; title: string; game: string; price: number };
+  order: string;
+  rating: number;
+  comment: string;
+  status: "pending" | "approved" | "rejected";
+  moderatedBy?: string | null;
+  moderatedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type AdminRole = "super_admin" | "admin";

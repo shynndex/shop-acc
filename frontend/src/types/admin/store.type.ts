@@ -4,6 +4,14 @@ import type {
   CreateAccountPayload,
   UpdateAccountPayload,
 } from "./account.type";
+import type {
+  ActivityItem,
+  AnalyticsFilters,
+  DepositMethodData,
+  GameDistribution,
+  KpiMetric,
+  RevenueDataPoint,
+} from "./analytics.type";
 import type { LoginPayload } from "./auth.type";
 import type { Deposit, UpdateDepositStatusPayload } from "./deposit.type";
 
@@ -69,4 +77,25 @@ export interface AdminDepositState {
     payload: UpdateDepositStatusPayload,
   ) => Promise<Deposit | null>;
   exportCsv: (filters?: Record<string, any>) => Promise<Blob | null>;
+}
+
+export interface AdminAnalyticsState {
+  kpis: {
+    totalRevenue: KpiMetric;
+    totalOrders: KpiMetric;
+    newUsers: KpiMetric;
+    activeAccounts: KpiMetric;
+  } | null;
+  revenueTrend: RevenueDataPoint[];
+  gameDistribution: GameDistribution[];
+  depositMethods: DepositMethodData[];
+  recentActivities: ActivityItem[];
+
+  loading: boolean;
+  error: string | null;
+  dateRange: { from: string; to: string };
+
+  fetchDashboard: (filter?: AnalyticsFilters) => Promise<void>;
+  refreshRevenue: (filter?: AnalyticsFilters) => Promise<void>;
+  setDateRange: (from: string, to: string) => void;
 }

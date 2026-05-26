@@ -9,8 +9,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { Mail, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { authService } from "@/services/client/authService";
 
 export function SignupForm({
   className,
@@ -27,10 +29,27 @@ export function SignupForm({
     password: "",
     confirmPassword: "",
   });
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData({ ...formData, [id]: value });
+  };
+
+  const handleResend = async () => {
+    if (!registeredEmail) return;
+    try {
+      setResending(true);
+      await authService.resendVerify(registeredEmail);
+      toast.success("Đã gửi lại email xác thực. Vui lòng kiểm tra hộp thư.");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Có lỗi khi gửi lại email",
+      );
+    } finally {
+      setResending(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -56,8 +75,8 @@ export function SignupForm({
       });
 
       if (success) {
-        toast.success("Đăng ký thành công!, Vui lòng đăng nhập.");
-        navigate("/signin");
+        setRegisteredEmail(formData.email);
+        toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác thực.");
       } else {
         toast.error("Đăng ký thất bại");
       }
@@ -72,6 +91,55 @@ export function SignupForm({
       toast.error(message);
     }
   };
+
+  // Hiển thị màn hình xác nhận email sau khi đăng ký thành công
+  if (registeredEmail) {
+    return (
+      <form className={cn("flex flex-col gap-6", className)} {...props}>
+        <FieldGroup>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="size-16 rounded-full bg-blue-100 flex items-center justify-center">
+              <Mail className="size-8 text-blue-600" />
+            </div>
+            <h1 className="text-2xl font-bold">Xác thực email 📧</h1>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Chúng tôi đã gửi email xác thực đến{" "}
+              <span className="font-medium text-blue-600">{registeredEmail}</span>
+            </p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 space-y-2">
+            <p className="font-medium">📌 Hướng dẫn:</p>
+            <ol className="list-decimal list-inside space-y-1 text-blue-700">
+              <li>Mở hộp thư <strong>{registeredEmail}</strong></li>
+              <li>Tìm email từ <strong>ShopSam</strong> (kiểm tra Spam nếu không thấy)</li>
+              <li>Nhấn vào <strong>"Xác thực email ngay"</strong> trong email</li>
+            </ol>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleResend}
+            disabled={resending}
+          >
+            <RefreshCw className={`mr-2 size-4 ${resending ? "animate-spin" : ""}`} />
+            {resending ? "Đang gửi..." : "Gửi lại email xác thực"}
+          </Button>
+
+          <p className="text-xs text-center text-muted-foreground">
+            Đã xác thực email?{" "}
+            <Link
+              to="/signin"
+              className="text-blue-700 font-medium hover:underline"
+            >
+              Đăng nhập ngay
+            </Link>
+          </p>
+        </FieldGroup>
+      </form>
+    );
+  }
 
   return (
     <form

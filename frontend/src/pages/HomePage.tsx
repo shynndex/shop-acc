@@ -1,7 +1,21 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { accountService } from "@/services/client/accountService";
+import type { Account } from "@/types";
+import {
+  BadgePercent,
+  Flame,
+  Trophy,
+  Star,
+  Tag,
+  ChevronRight,
+  MessageCircle,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Star, ChevronRight, MessageCircle } from "lucide-react";
+import { GAME_CATEGORIES } from "@/config/categories";
+
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { AccountCategories } from "@/components/client/sections/AccountCategories";
 
 // Dữ liệu mẫu (nên move ra file constants/data sau này)
@@ -31,21 +45,8 @@ const topUpData = [
   },
 ];
 
-const gameCategories = [
-  {
-    id: 1,
-    name: "THU ACC THANH LÝ ALL...",
-    icon: "💰",
-    color: "bg-yellow-100",
-  },
-  { id: 2, name: "ACC LIÊN QUÂN SALE", icon: "⚔️", color: "bg-red-100" },
-  { id: 3, name: "ACC BLOX FRUITS GIÁ RẺ", icon: "🍇", color: "bg-purple-100" },
-  { id: 4, name: "ACC FREE FIRE GIÁ RẺ", icon: "🔥", color: "bg-orange-100" },
-  { id: 5, name: "ACC TFT ĐDTL GIÁ RẺ", icon: "⚡", color: "bg-blue-100" },
-  { id: 6, name: "ACC GROW A GARDEN", icon: "🌱", color: "bg-green-100" },
-];
 
-//  Sidebar: Top nạp thẻ
+// Sidebar: Top nạp thẻ
 const TopUpSidebar = () => (
   <Card className="w-full max-w-sm">
     <CardContent className="p-4">
@@ -82,7 +83,7 @@ const TopUpSidebar = () => (
   </Card>
 );
 
-// 🔹 Banner chính
+// Banner chính
 const MainBanner = () => (
   <Card className="relative overflow-hidden h-[300px] md:h-[400px]">
     <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-700">
@@ -106,7 +107,6 @@ const MainBanner = () => (
         </div>
       </div>
     </div>
-    {/* Navigation Arrows */}
     <Button
       size="icon"
       variant="ghost"
@@ -124,28 +124,58 @@ const MainBanner = () => (
   </Card>
 );
 
-// 🔹 Danh mục game
-const GameCategories = () => (
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-    {gameCategories.map((game) => (
-      <Card
-        key={game.id}
-        className="cursor-pointer hover:shadow-lg transition-shadow group"
-      >
-        <CardContent className="p-4 text-center">
-          <div
-            className={`${game.color} w-16 h-16 mx-auto mb-3 rounded-lg flex items-center justify-center text-3xl group-hover:scale-110 transition-transform`}
-          >
-            {game.icon}
+// Danh mục game — style AccountCategories
+const GameCategories = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {GAME_CATEGORIES.map((game) => (
+        <Card
+          key={game.gameSlug}
+          className="overflow-hidden group cursor-pointer border-2 border-transparent hover:shadow-xl transition-all duration-300"
+          onClick={() => navigate(`/tai-khoan/${game.gameSlug}`)}
+        >
+          <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <span className="text-5xl group-hover:scale-110 transition-transform duration-500">
+              {game.gameIcon}
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </div>
-          <h3 className="font-semibold text-sm line-clamp-2">{game.name}</h3>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
+          <CardContent className="p-4 text-center space-y-3 bg-white">
+            <h3 className="font-bold text-sm text-gray-800 line-clamp-2 min-h-[40px]">
+              {game.gameName}
+            </h3>
+            <Badge className="bg-gradient-to-br from-amber-500 to-orange-600 hover:bg-orange-600 text-white px-4 py-1.5 rounded-full text-sm font-semibold">
+              {game.gameIcon} {game.categories.length} loại
+            </Badge>
+            <p className="text-sm font-medium text-gray-600 flex items-center justify-center gap-1">
+              <BadgePercent className="size-4 text-blue-500" />
+              Từ{" "}
+              <span className="text-red-600 font-bold text-lg">
+                {Math.min(...game.categories.map((c) => c.priceFrom)).toLocaleString("vi-VN")}đ
+              </span>
+            </p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const [popularAccounts, setPopularAccounts] = useState<Account[]>([]);
+  const [popularLoading, setPopularLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch popular products
+    accountService
+      .getSuggestions({ type: "popular", limit: 6 })
+      .then((data) => setPopularAccounts(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setPopularLoading(false));
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-6">
@@ -169,7 +199,90 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Floating Chat Button - giữ nguyên vì là feature global */}
+      {/* Popular Products Section */}
+      {!popularLoading && popularAccounts.length > 0 && (
+        <section className="px-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Flame className="size-6 text-orange-500" />
+                Sản phẩm bán chạy
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Những tài khoản được giao dịch nhiều nhất
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              className="text-blue-600"
+              onClick={() => navigate("/tai-khoan/lien-quan")}
+            >
+              Xem tất cả <ChevronRight className="size-4 ml-1" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {popularAccounts.map((acc) => (
+              <Card
+                key={acc.id}
+                className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-blue-400 overflow-hidden"
+                onClick={() => navigate(`/tai-khoan/${acc.game}/${acc.id}`)}
+              >
+                <div className="aspect-video bg-gray-100 overflow-hidden relative">
+                  {acc.attributes?.discount && (
+                    <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600 z-10">
+                      -{acc.attributes.discount}%
+                    </Badge>
+                  )}
+                  {acc.rating && acc.rating.count > 0 && (
+                    <Badge className="absolute top-2 right-2 bg-yellow-500 hover:bg-yellow-600 flex items-center gap-1 z-10">
+                      <Star className="size-3 fill-white" />
+                      {acc.rating.avg}
+                    </Badge>
+                  )}
+                  {acc.images?.[0] ? (
+                    <img
+                      src={acc.images[0]}
+                      alt={acc.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-3xl">🎮</div>
+                  )}
+                </div>
+                <CardContent className="p-3">
+                  <p className="text-sm font-semibold line-clamp-1">{acc.title}</p>
+                  {acc.attributes?.code && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded w-fit mt-1">
+                      <Tag className="size-3" />
+                      <span className="font-mono">{acc.attributes.code}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-1">
+                    <div>
+                      {acc.attributes?.originalPrice && (
+                        <p className="text-xs text-muted-foreground line-through">
+                          {acc.attributes.originalPrice.toLocaleString("vi-VN")}đ
+                        </p>
+                      )}
+                      <p className="text-sm font-bold text-red-600">
+                        {acc.price.toLocaleString("vi-VN")}đ
+                      </p>
+                    </div>
+                    {acc.rating && acc.rating.count > 0 && (
+                      <span className="text-xs text-yellow-600 flex items-center gap-0.5">
+                        <Star className="size-3 fill-yellow-400 text-yellow-400" />
+                        {acc.rating.avg}
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Floating Chat Button */}
       <Button
         size="icon"
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg z-40"

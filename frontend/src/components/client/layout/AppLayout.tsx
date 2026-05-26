@@ -2,6 +2,7 @@ import React from "react";
 import Header from "./Header";
 import { Outlet } from "react-router-dom";
 import { Footer } from "./Footer";
+import { CompareBar } from "@/components/client/CompareBar";
 
 const AppLayout = () => {
   return (
@@ -13,6 +14,9 @@ const AppLayout = () => {
       </main>
 
       <Footer />
+
+      {/* Floating compare bar */}
+      <CompareBar />
     </div>
   );
 };

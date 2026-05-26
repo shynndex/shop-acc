@@ -13,8 +13,9 @@ export const depositService = {
    * Tạo Payment Link PayOS
    * @param amount - Số tiền cần nạp (VNĐ)
    */
-  createPaymentQR: async (amount: number) => {
-    const payload: PaymentLinkRequest = { amount };
+  createPaymentQR: async (amount: number, discountCode?: string) => {
+    const payload: PaymentLinkRequest & { discountCode?: string } = { amount };
+    if (discountCode) payload.discountCode = discountCode;
     return await api.post<PaymentLinkData>(
       "/payment/create-payment/bank",
       payload,
@@ -64,11 +65,37 @@ export const depositService = {
       amount: data.amount,
       serial: data.serial,
       pin: data.pin,
+      discountCode: data.discountCode,
     });
   },
 
-  // to do
   /**
-   * Lấy lịch sử nạp tiền của user
+   * Tạo PayOS Purchase — mua tài khoản qua chuyển khoản QR
    */
+  createPayOSPurchase: async (
+    data: { accountId: string; discountCode?: string },
+  ) => {
+    const res = await api.post<any>("/payment/create-purchase", data);
+    return res;
+  },
+
+  /**
+   * Kiểm tra trạng thái thanh toán PayOS purchase
+   */
+  checkPayOSPurchaseStatus: async (bankDepositId: string) => {
+    const res = await api.post<any>(
+      `/payment/purchase/${bankDepositId}/check`,
+    );
+    return res;
+  },
+
+  /**
+   * Huỷ giao dịch PayOS purchase
+   */
+  cancelPayOSPurchase: async (bankDepositId: string) => {
+    const res = await api.post<any>(
+      `/payment/purchase/${bankDepositId}/cancel`,
+    );
+    return res;
+  },
 };
