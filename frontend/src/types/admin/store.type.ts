@@ -21,7 +21,14 @@ export interface AuthState {
   error: string | null;
   isAuthenticated: boolean;
 
-  login: (credentials: LoginPayload) => Promise<AdminUser>;
+  // ─── 2FA ─────────────────────────────────────────────────────────────
+  requiresTwoFactor: boolean;
+  tempToken: string | null;
+  loginEmail: string;
+
+  login: (credentials: LoginPayload) => Promise<AdminUser | LoginResponse>;
+  verifyTwoFactorLogin: (totpCode: string) => Promise<AdminUser>;
+  cancelTwoFactorLogin: () => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<AdminUser | null>;
   clearError: () => void;

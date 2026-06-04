@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const BankDepositSchema = new mongoose.Schema(
   {
-    // Loại giao dịch: "deposit" (nạp tiền) | "purchase" (mua trực tiếp qua PayOS)
+    // Loại giao dịch: "deposit" ( tiền) | "purchase" (mua trực tiếp qua PayOS)
     type: {
       type: String,
       enum: ["deposit", "purchase"],
@@ -72,6 +72,13 @@ const BankDepositSchema = new mongoose.Schema(
       type: { type: String, enum: ["percent", "fixed", null], default: null },
       value: { type: Number, default: 0 },
       amount: { type: Number, default: 0 },
+    },
+
+    // Số tiền bonus từ giftcode (lưu riêng để dễ query)
+    bonusAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
     // Reserve info (cho type === "purchase")

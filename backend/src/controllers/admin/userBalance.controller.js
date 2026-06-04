@@ -82,6 +82,11 @@ function readBalanceLog(userId, { dateFrom, dateTo, page = 1, limit = 50 }) {
  *
  * Search users by username or email (case-insensitive, partial match).
  */
+// ── Escape regex special characters ───────────────────────────
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const searchUsers = asyncHandler(async (req, res) => {
   const { q } = req.query;
 
@@ -89,7 +94,8 @@ export const searchUsers = asyncHandler(async (req, res) => {
     return res.json({ success: true, data: [] });
   }
 
-  const regex = new RegExp(q.trim(), "i");
+  const escaped = escapeRegex(q.trim());
+  const regex = new RegExp(escaped, "i");
   const users = await User.find({
     $or: [
       { username: regex },
@@ -180,14 +186,19 @@ export const adjustUserBalance = asyncHandler(async (req, res) => {
   }
 
   const balanceBefore = user.balance;
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
+
+  // ⚠️ CAS (Compare-And-Swap) — chỉ update nếu balance chưa thay đổi
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: userId, balance: balanceBefore },
     { $inc: { balance: amount } },
     { new: true, select: "balance displayName username" },
   );
 
   if (!updatedUser) {
-    throw new AppError("Không thể cập nhật số dư", 500);
+    throw new AppError(
+      "Số dư đã thay đổi trước đó. Vui lòng thử lại.",
+      409,
+    );
   }
 
   // Audit log

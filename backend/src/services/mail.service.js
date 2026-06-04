@@ -58,3 +58,62 @@ export const sendVerificationEmail = async (email, token, displayName) => {
     throw error;
   }
 };
+
+export const sendResetPasswordEmail = async (email, token, displayName) => {
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "🔐 Đặt lại mật khẩu - ShopSam",
+      html: `
+        <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="font-size: 28px; font-weight: 800; background: linear-gradient(to right, #06b6d4, #f97316); -webkit-background-clip: text; color: transparent; margin: 0;">ShopSam</h1>
+          </div>
+          
+          <h2 style="font-size: 20px; color: #1e293b; margin-bottom: 12px;">Chào ${displayName || "bạn"}! 👋</h2>
+          <p style="color: #475569; line-height: 1.6; margin-bottom: 24px;">
+            Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${email}</strong>.
+            Nếu bạn không yêu cầu, vui lòng bỏ qua email này.
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetUrl}" 
+               style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px; transition: background 0.2s;">
+              Đặt lại mật khẩu
+            </a>
+          </div>
+          
+          <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+            Hoặc copy đường link sau vào trình duyệt:<br/>
+            <span style="color: #0ea5e9; word-break: break-all;">${resetUrl}</span>
+          </p>
+          
+          <p style="color: #ef4444; font-size: 13px; font-weight: 500;">
+            ⚠️ Link này sẽ hết hạn sau 15 phút. Không chia sẻ link này với bất kỳ ai.
+          </p>
+          
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+              Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này hoặc liên hệ hỗ trợ.<br/>
+              © ${new Date().getFullYear()} ShopSam. All rights reserved.
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error("[Resend] Error sending reset email:", error);
+      throw new Error("Không thể gửi email đặt lại mật khẩu");
+    }
+
+    console.log("[Resend] Reset email sent successfully:", data?.id);
+    return data;
+  } catch (error) {
+    console.error("[Resend] Exception:", error);
+    throw error;
+  }
+};

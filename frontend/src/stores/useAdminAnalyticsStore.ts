@@ -51,7 +51,7 @@ export const useAdminAnalyticsStore = create<AdminAnalyticsState>(
           ...get().dateRange,
           ...filters,
         });
-        set((state) => ({ revenueTrend: data }));
+        set({ revenueTrend: data });
       } catch (error) {
         toast.error("Không thể refresh biểu đồ doanh thu");
       }

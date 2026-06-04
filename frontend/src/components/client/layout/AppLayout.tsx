@@ -1,22 +1,41 @@
-import React from "react";
 import Header from "./Header";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "./Footer";
-import { CompareBar } from "@/components/client/CompareBar";
+import { useEffect } from "react";
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
+const PageTransition = ({ children }: { children: React.ReactNode }) => {
+  const { pathname } = useLocation();
+  return (
+    <div
+      key={pathname}
+      className="animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out fill-mode-both"
+    >
+      {children}
+    </div>
+  );
+};
 
 const AppLayout = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <ScrollToTop />
       <Header />
 
-      <main className="container mx-auto px-4 py-6 flex-1">
-        <Outlet />
+      <main className="flex-1 container-wrapper">
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </main>
 
       <Footer />
-
-      {/* Floating compare bar */}
-      <CompareBar />
     </div>
   );
 };

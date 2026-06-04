@@ -76,7 +76,8 @@ const DataTablePagination = <TData,>({
       {/* Left: Page size selector */}
       {showPageSizeOptions && onPageChange && (
         <div className="flex w-full items-center gap-2 sm:w-auto">
-          <p className="text-sm text-muted-foreground">Số dòng</p>
+          <p className="hidden text-sm text-muted-foreground sm:inline">Số dòng</p>
+          <p className="text-sm text-muted-foreground sm:hidden">/ trang</p>
           <Select
             value={pageSize.toString()}
             onValueChange={handlePageSizeChange}
@@ -110,7 +111,7 @@ const DataTablePagination = <TData,>({
         <div className="flex items-center gap-2 sm:justify-end">
           {/* First page */}
           <Button
-            className={"hidden size-8 p-0 lg:flex"}
+            className={"hidden size-8 p-0 lg:flex transition-all duration-150"}
             variant={"outline"}
             onClick={() => handlePageChange(1)}
             disabled={isFirstPage}
@@ -119,7 +120,7 @@ const DataTablePagination = <TData,>({
           </Button>
           {/* Previous page */}
           <Button
-            className={"size-8 p-0"}
+            className={"size-8 p-0 transition-all duration-150"}
             variant={"outline"}
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={isFirstPage}
@@ -128,7 +129,7 @@ const DataTablePagination = <TData,>({
           </Button>
 
           {/* Page number */}
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-1 sm:flex">
             {Array.from({ length: Math.min(5, normalizedTotalPages) }, (_, i) => {
               let pageNum = i + 1;
               if (normalizedTotalPages > 5) {
@@ -154,7 +155,7 @@ const DataTablePagination = <TData,>({
                 <Button
                   key={pageNum}
                   variant={currentPage === pageNum ? "default" : "outline"}
-                  className="size-8 p-0"
+                  className="size-8 p-0 transition-all duration-150"
                   onClick={() => handlePageChange(pageNum)}
                 >
                   {pageNum}
@@ -164,7 +165,7 @@ const DataTablePagination = <TData,>({
           </div>
 
           <Button
-            className={"size-8 p-0"}
+            className={"size-8 p-0 transition-all duration-150"}
             variant={"outline"}
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={isLastPage}
@@ -173,7 +174,7 @@ const DataTablePagination = <TData,>({
           </Button>
 
           <Button
-            className={"hidden size-8 p-0 lg:flex"}
+            className={"hidden size-8 p-0 lg:flex transition-all duration-150"}
             variant={"outline"}
             onClick={() => handlePageChange(normalizedTotalPages)}
             disabled={isLastPage}

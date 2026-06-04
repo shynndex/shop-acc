@@ -1,5 +1,9 @@
 import Account from "../models/Account.model.js";
 import Order from "../models/Order.model.js";
+import BankDeposit from "../models/client/deposits/BankDeposit.model.js";
+import CardDeposit from "../models/client/deposits/CardDeposit.model.js";
+import User from "../models/client/User.model.js";
+import GameCategory from "../models/admin/GameCategory.model.js";
 import { asyncHandler, AppError } from "../middlewares/errorHandler.js";
 
 // ─── Advanced Search / Attribute Filtering ─────────────────────────────────
@@ -158,25 +162,108 @@ export const getAccountById = asyncHandler(async (req, res) => {
   res.status(200).json({ account });
 });
 
-// ─── Compare ─────────────────────────────────────────────────────────────
+// ─── Accounts By Game (for homepage sections) ───────────────────────────
 
-export const compareAccounts = asyncHandler(async (req, res) => {
-  const { ids } = req.body;
+export const getAccountsByGame = asyncHandler(async (req, res) => {
+  const { limit = 4 } = req.query;
+  const limitNum = Math.min(Number(limit) || 4, 8);
 
-  if (!Array.isArray(ids) || ids.length < 2 || ids.length > 5) {
-    throw new AppError("Vui lòng chọn từ 2 đến 5 tài khoản để so sánh", 400);
+  // Get active games sorted by sortOrder
+  const games = await GameCategory.find({ isActive: true })
+    .sort({ sortOrder: 1, gameName: 1 })
+    .lean();
+
+  // For each game, fetch top available accounts
+  const sections = [];
+  for (const game of games) {
+    let accounts = await Account.find({
+      game: game.gameSlug,
+      isActive: true,
+      isSold: false,
+    })
+      .sort({ createdAt: -1 })
+      .limit(limitNum)
+      .select("-loginInfo")
+      .lean();
+
+    // Map _id to id (lean() bypasses toJSON transform)
+    accounts = accounts.map((acc) => ({
+      ...acc,
+      id: acc._id.toString(),
+    }));
+
+    if (accounts.length > 0) {
+      sections.push({
+        gameSlug: game.gameSlug,
+        gameName: game.gameName,
+        gameIcon: game.gameIcon,
+        accounts,
+      });
+    }
   }
 
-  const accounts = await Account.find({
-    _id: { $in: ids },
-    isActive: true,
-  }).select("-loginInfo");
+  res.json({ success: true, data: { sections } });
+});
 
-  if (accounts.length !== ids.length) {
-    throw new AppError("Một số tài khoản không tồn tại hoặc đã bị khoá", 404);
+// ─── Top Depositors (homepage podium) ───────────────────────────────────
+
+export const getTopDepositors = asyncHandler(async (req, res) => {
+  const { limit = 3 } = req.query;
+  const limitNum = Math.min(Number(limit) || 3, 10);
+
+  // Aggregate total deposits from both BankDeposit (PAID) and CardDeposit (SUCCESS)
+  const [bankDeposits, cardDeposits] = await Promise.all([
+    BankDeposit.aggregate([
+      { $match: { status: "PAID", type: "deposit" } },
+      { $group: { _id: "$user", total: { $sum: "$amount" } } },
+    ]),
+    CardDeposit.aggregate([
+      { $match: { status: "SUCCESS" } },
+      { $group: { _id: "$user", total: { $sum: "$receivedAmount" } } },
+    ]),
+  ]);
+
+  // Merge totals by user
+  const totalsMap = new Map();
+  const addTotals = (deposits) => {
+    for (const d of deposits) {
+      const key = d._id?.toString();
+      if (!key) continue;
+      totalsMap.set(key, (totalsMap.get(key) || 0) + d.total);
+    }
+  };
+  addTotals(bankDeposits);
+  addTotals(cardDeposits);
+
+  // Sort by total descending, take top N
+  const sorted = Array.from(totalsMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limitNum);
+
+  if (sorted.length === 0) {
+    return res.json({ success: true, data: { depositors: [] } });
   }
 
-  res.json({ success: true, data: { accounts } });
+  // Fetch user info
+  const userIds = sorted.map(([id]) => id);
+  const users = await User.find({ _id: { $in: userIds } })
+    .select("displayName avatarUrl balance")
+    .lean();
+
+  const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+  const depositors = sorted.map(([userId, total], index) => {
+    const user = userMap.get(userId);
+    return {
+      rank: index + 1,
+      userId,
+      displayName: user?.displayName || "Ẩn danh",
+      avatarUrl: user?.avatarUrl || null,
+      totalDeposited: total,
+    };
+  });
+
+  res.json({ success: true, data: { depositors } });
 });
 
 // ─── Suggestions ──────────────────────────────────────────────────────────

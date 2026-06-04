@@ -9,6 +9,7 @@ import mongoose from "mongoose";
  *   giftcode:create, giftcode:update, giftcode:delete
  *   review:approve, review:reject
  *   balance:adjust
+ *   admin:login, admin:logout
  */
 const auditLogSchema = new mongoose.Schema(
   {
@@ -38,12 +39,14 @@ const auditLogSchema = new mongoose.Schema(
         "review:approve",
         "review:reject",
         "balance:adjust",
+        "admin:login",
+        "admin:logout",
       ],
     },
     resource: {
       type: String,
       required: true,
-      enum: ["account", "deposit", "giftcode", "review", "user_balance"],
+      enum: ["account", "deposit", "giftcode", "review", "user_balance", "auth"],
     },
     resourceId: {
       type: String,
@@ -66,7 +69,7 @@ const auditLogSchema = new mongoose.Schema(
 auditLogSchema.index({ adminId: 1, createdAt: -1 });
 auditLogSchema.index({ action: 1, createdAt: -1 });
 auditLogSchema.index({ resource: 1, createdAt: -1 });
-auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 }); // TTL: auto-delete after 90 days
 
 const AuditLog = mongoose.model("AuditLog", auditLogSchema);
 

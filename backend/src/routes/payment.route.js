@@ -29,8 +29,8 @@ router.post("/card/webhook", cardWebhook);
 router.post("/create-payment/bank", protectedRoute, strictLimiter, validate(createDepositInfoSchema), createDepositInfo);
 router.post("/create-payment/card", protectedRoute, strictLimiter, validate(submitCardDepositSchema), submitCardDeposit);
 router.post("/create-purchase", protectedRoute, strictLimiter, validate(createPayOSPurchaseSchema), createPayOSPurchase);
-router.post("/purchase/:bankDepositId/check", protectedRoute, checkPayOSPurchaseStatus);
-router.post("/purchase/:bankDepositId/cancel", protectedRoute, cancelPayOSPurchase);
+router.post("/purchase/:bankDepositId/check", protectedRoute, strictLimiter, checkPayOSPurchaseStatus);
+router.post("/purchase/:bankDepositId/cancel", protectedRoute, strictLimiter, cancelPayOSPurchase);
 router.get("/calculate-fee", protectedRoute, calculateFee);
 
 export default router;

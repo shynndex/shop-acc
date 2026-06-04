@@ -56,10 +56,10 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...data } : null,
         })),
 
-      signIn: async ({ email, password }) => {
+      signIn: async ({ identifier, password }) => {
         try {
           set({ loading: true });
-          const response = await authService.signIn({ email, password });
+          const response = await authService.signIn({ identifier, password });
 
           set({
             accessToken: response.accessToken,
@@ -71,27 +71,25 @@ export const useAuthStore = create<AuthState>()(
           return true;
         } catch (error: any) {
           const message =
-            error?.response?.data?.message || "Đăng nhập thất bại";
+            error?.message || "Đăng nhập thất bại";
           throw new Error(message);
         } finally {
           set({ loading: false });
         }
       },
 
-      signUp: async ({ username, password, email, firstName, lastName }) => {
+      signUp: async ({ username, password, email }) => {
         try {
           set({ loading: true });
           await authService.signUp(
             username,
             password,
             email,
-            firstName,
-            lastName,
           );
 
           return true;
         } catch (error: any) {
-          const message = error?.response?.data?.message || "Đăng ký thất bại";
+          const message = error?.message || "Đăng ký thất bại";
           throw new Error(message);
         } finally {
           set({ loading: false });

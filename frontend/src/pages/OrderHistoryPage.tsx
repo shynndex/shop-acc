@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { GlassCard } from "@/components/ui/glass-card";
+import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,7 +119,7 @@ const OrderHistoryPage = () => {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="py-8 max-w-5xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
           <History className="w-8 h-8 text-blue-600" />
@@ -129,41 +131,44 @@ const OrderHistoryPage = () => {
       </div>
 
       {showSuccessBanner && (
-        <Alert className="mb-6 bg-green-50 border-green-200 text-green-800 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle className="size-5 text-green-600" />
-          <AlertTitle className="font-semibold">Thành công!</AlertTitle>
-          <AlertDescription>
-            Bạn đã mua tài khoản thành công. Thông tin đã được lưu vào đơn hàng
-            bên dưới.
-          </AlertDescription>
-        </Alert>
+        <GlassCard className="mb-6 border-green-500/30 bg-green-500/10">
+          <div className="flex items-start gap-3 p-4">
+            <CheckCircle className="size-5 text-green-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-semibold text-green-700 dark:text-green-400">Thành công!</h4>
+              <p className="text-sm text-green-600/80 dark:text-green-400/80 mt-0.5">
+                Bạn đã mua tài khoản thành công. Thông tin đã được lưu vào đơn hàng
+                bên dưới.
+              </p>
+            </div>
+          </div>
+        </GlassCard>
       )}
 
       {/* Thanh tìm kiếm */}
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Tìm kiếm theo tên tài khoản hoặc mã đơn hàng..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />            <Input
+              placeholder="Tìm kiếm theo tên tài khoản hoặc mã đơn hàng..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 border-border/50 bg-muted/20"
+            />
       </div>
 
       {/* Loading state */}
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Card key={i}>
+            <GlassCard key={i}>
               <CardHeader className="pb-3">
                 <Skeleton className="h-6 w-48 mb-2" />
                 <Skeleton className="h-4 w-32" />
               </CardHeader>
-            </Card>
+            </GlassCard>
           ))}
         </div>
       ) : filteredOrders.length === 0 ? (
-        <Card className="p-12 text-center">
+        <GlassCard className="p-12 text-center">
           <Package className="size-16 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">
             {searchTerm
@@ -176,9 +181,9 @@ const OrderHistoryPage = () => {
               : "Bạn chưa mua tài khoản nào. Hãy khám phá kho nick ngay!"}
           </p>
           {!searchTerm && (
-            <Button onClick={() => navigate("/tai-khoan/lien-quan")}>Khám phá ngay</Button>
+            <GradientButton onClick={() => navigate("/tai-khoan/lien-quan")}>Khám phá ngay</GradientButton>
           )}
-        </Card>
+        </GlassCard>
       ) : (
         <div className="space-y-4">
           {filteredOrders.map((order) => {
@@ -187,9 +192,9 @@ const OrderHistoryPage = () => {
             const isHighlighted = highlightedOrderId === orderId;
 
             return (
-              <Card
+              <GlassCard
                 key={order._id}
-                className={`overflow-hidden transition-all duration-300 ${isHighlighted ? "ring-2 ring-blue-500 shadow-lg" : "hover:shadow-md"}`}
+                className={`overflow-hidden transition-all duration-300 ${isHighlighted ? "ring-2 ring-blue-500 shadow-glow-sm" : "hover:shadow-lg"}`}
               >
                 <CardHeader
                   className="pb-3 cursor-pointer select-none"
@@ -204,7 +209,7 @@ const OrderHistoryPage = () => {
                         {isHighlighted && (
                           <Badge
                             variant="secondary"
-                            className="bg-blue-100 text-blue-700"
+                            className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                           >
                             Mới mua
                           </Badge>
@@ -225,7 +230,7 @@ const OrderHistoryPage = () => {
                       </span>
                       <Badge
                         variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200"
+                        className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                       >
                         Hoàn thành
                       </Badge>
@@ -233,7 +238,7 @@ const OrderHistoryPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50"
+                          className="text-yellow-600 dark:text-yellow-500 hover:text-yellow-800 hover:bg-yellow-50 dark:hover:bg-yellow-950/30"
                           onClick={(e) => {
                             e.stopPropagation();
                             setReviewDialog({
@@ -259,7 +264,7 @@ const OrderHistoryPage = () => {
 
                 {isExpanded && order.account?.loginInfo && (
                   <CardContent className="pt-0 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="border-t pt-4 mt-2">
+                    <div className="border-t border-border/50 pt-4 mt-2">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold flex items-center gap-2 text-sm">
                           <Package className="size-4" />
@@ -268,7 +273,7 @@ const OrderHistoryPage = () => {
                       </div>
 
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border group hover:border-blue-300 transition-colors">
+                        <div className="flex items-center justify-between glass-subtle p-3 rounded-lg border border-border/30 group hover:border-blue-400/50 transition-colors">
                           <div className="flex-1 min-w-0 mr-4">
                             <span className="text-xs text-muted-foreground uppercase font-medium block mb-1">
                               Tên đăng nhập
@@ -293,7 +298,7 @@ const OrderHistoryPage = () => {
                           </Button>
                         </div>
 
-                        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border group hover:border-blue-300 transition-colors">
+                        <div className="flex items-center justify-between glass-subtle p-3 rounded-lg border border-border/30 group hover:border-blue-400/50 transition-colors">
                           <div className="flex-1 min-w-0 mr-4">
                             <span className="text-xs text-muted-foreground uppercase font-medium block mb-1">
                               Mật khẩu
@@ -319,9 +324,9 @@ const OrderHistoryPage = () => {
                         </div>
                       </div>
 
-                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-                        <EyeOff className="size-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-amber-800">
+                      <div className="mt-4 p-3 glass-subtle border border-amber-500/20 rounded-lg flex items-start gap-2">
+                        <EyeOff className="size-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
                           <strong>Bảo mật:</strong> Vui lòng đổi mật khẩu game
                           ngay sau khi nhận tài khoản để đảm bảo an toàn. Shop
                           không chịu trách nhiệm nếu tài khoản bị khóa do không
@@ -331,7 +336,7 @@ const OrderHistoryPage = () => {
                     </div>
                   </CardContent>
                 )}
-              </Card>
+              </GlassCard>
             );
           })}
         </div>
@@ -342,7 +347,7 @@ const OrderHistoryPage = () => {
         open={reviewDialog?.open || false}
         onOpenChange={(open) => !open && setReviewDialog(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent showCloseButton={false} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Đánh giá sản phẩm</DialogTitle>
             <DialogDescription>
@@ -384,8 +389,7 @@ const OrderHistoryPage = () => {
             <Button variant="outline" onClick={() => setReviewDialog(null)}>
               Huỷ
             </Button>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
+            <GradientButton
               disabled={submittingReview}
               onClick={async () => {
                 if (!reviewDialog) return;
@@ -410,7 +414,7 @@ const OrderHistoryPage = () => {
               }}
             >
               {submittingReview ? "Đang gửi..." : "Gửi đánh giá"}
-            </Button>
+            </GradientButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

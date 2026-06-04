@@ -12,23 +12,92 @@ export const useAdminAuth = create<AuthState>()(
       error: null,
       isAuthenticated: false,
 
+      // ─── 2FA state ─────────────────────────────────────────────────────
+      requiresTwoFactor: false,
+      tempToken: null,
+      loginEmail: "",
+
       login: async (credentials) => {
         set({ loading: true, error: null });
         try {
           const response = await authService.login(credentials);
 
+          if ("requiresTwoFactor" in response && response.requiresTwoFactor) {
+            // 2FA required — store tempToken, don't authenticate yet
+            set({
+              requiresTwoFactor: true,
+              tempToken: response.tempToken,
+              loginEmail: credentials.email,
+              loading: false,
+              error: null,
+              isAuthenticated: false,
+            });
+            return response;
+          }
+
+          // Normal login success
           set({
             admin: response.admin,
             isAuthenticated: true,
             loading: false,
             error: null,
+            requiresTwoFactor: false,
+            tempToken: null,
           });
           return response.admin;
         } catch (error: any) {
-           const message = error?.message || "Đăng nhập thất bại";
-          set({ loading: false, error: message, isAuthenticated: false });
+          const message = error?.message || "Đăng nhập thất bại";
+          set({
+            loading: false,
+            error: message,
+            isAuthenticated: false,
+            requiresTwoFactor: false,
+            tempToken: null,
+          });
           throw error;
         }
+      },
+
+      verifyTwoFactorLogin: async (totpCode: string) => {
+        const { tempToken } = get();
+        if (!tempToken) throw new Error("Không có mã xác thực tạm thời");
+
+        set({ loading: true, error: null });
+        try {
+          const response = await authService.verifyTwoFactorLogin({
+            tempToken,
+            totpCode,
+          });
+
+          if ("admin" in response && response.admin) {
+            set({
+              admin: response.admin,
+              isAuthenticated: true,
+              loading: false,
+              error: null,
+              requiresTwoFactor: false,
+              tempToken: null,
+              loginEmail: "",
+            });
+            return response.admin;
+          }
+
+          throw new Error("Xác thực 2FA thất bại");
+        } catch (error: any) {
+          const message = error?.message || "Mã xác thực không đúng";
+          set({ loading: false, error: message });
+          throw error;
+        }
+      },
+
+      cancelTwoFactorLogin: () => {
+        set({
+          requiresTwoFactor: false,
+          tempToken: null,
+          loginEmail: "",
+          loading: false,
+          error: null,
+        });
       },
 
       logout: async () => {
@@ -42,24 +111,26 @@ export const useAdminAuth = create<AuthState>()(
             admin: null,
             isAuthenticated: false,
             loading: false,
+            requiresTwoFactor: false,
+            tempToken: null,
+            loginEmail: "",
           });
         }
       },
 
       checkAuth: async () => {
         try {
-          const admin = await authService.getMe();
+          const response = await authService.getMe();
 
-          if (admin) {
+          if (response?.admin) {
             set({
-              admin: admin,
+              admin: response.admin,
               isAuthenticated: true,
               error: null,
               loading: false,
             });
-            return admin;
+            return response.admin;
           } else {
-            // Chưa login hoặc token hết hạn
             set({
               admin: null,
               isAuthenticated: false,
@@ -76,11 +147,11 @@ export const useAdminAuth = create<AuthState>()(
           return null;
         }
       },
+
       clearError() {
         set({ error: null });
       },
 
-      // Cập nhật thông tin admin (optimistic update)
       updateAdmin: (data: Partial<AdminUser>) => {
         set((state) => ({
           admin: state.admin ? { ...state.admin, ...data } : null,
@@ -92,6 +163,7 @@ export const useAdminAuth = create<AuthState>()(
       partialize: (state) => ({
         admin: state.admin,
         isAuthenticated: state.isAuthenticated,
+        loginEmail: state.loginEmail,
       }),
     },
   ),

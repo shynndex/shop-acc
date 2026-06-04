@@ -94,6 +94,40 @@ function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// ─── EmptyState convenience wrapper ──────────────────────────────────
+
+interface EmptyStateProps {
+  /** Icon component to render (lucide-react icon) */
+  icon?: React.ElementType;
+  /** Main title text */
+  title: string;
+  /** Optional description below title */
+  description?: string;
+  /** Optional action element (e.g. a Button) */
+  action?: React.ReactNode;
+  /** Optional className override */
+  className?: string;
+}
+
+function EmptyState({ icon: Icon, title, description, action, className }: EmptyStateProps) {
+  return (
+    <Empty className={className}>
+      {Icon && (
+        <EmptyMedia variant="icon">
+          <Icon className="size-6" />
+        </EmptyMedia>
+      )}
+      <EmptyHeader>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
+      {action && <EmptyContent>{action}</EmptyContent>}
+    </Empty>
+  );
+}
+
+EmptyState.displayName = "EmptyState";
+
 export {
   Empty,
   EmptyHeader,
@@ -101,4 +135,5 @@ export {
   EmptyDescription,
   EmptyContent,
   EmptyMedia,
+  EmptyState,
 }

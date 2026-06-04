@@ -73,32 +73,32 @@ export const listDeposits = asyncHandler(async (req, res) => {
     }
   }
 
+  // Fetch ALL matching docs from both collections (no DB-level pagination
+  // because we need to sort across both collections before paging)
   const [cardDeposits, cardTotal, bankDeposits, bankTotal] =
     await Promise.all([
       CardDeposit.find(cardFilter)
         .populate("user", "username email")
         .sort(sort)
-        .skip(skip)
-        .limit(limit)
         .lean(),
       CardDeposit.countDocuments(cardFilter),
       BankDeposit.find(bankFilter)
         .populate("user", "username email")
         .populate("bank", "bankName accountNumber accountHolder")
         .sort(sort)
-        .skip(skip)
-        .limit(limit)
         .lean(),
       BankDeposit.countDocuments(bankFilter),
     ]);
 
   const adaptedCard = cardDeposits.map(adaptCardDeposit);
   const adaptedBank = bankDeposits.map(adaptBankDeposit);
+  // Merge + sort by createdAt across both collections
   const allDeposits = [...adaptedCard, ...adaptedBank].sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
 
-  const paginatedDeposits = allDeposits.slice(0, limit);
+  // Apply pagination on the combined sorted result
+  const paginatedDeposits = allDeposits.slice(skip, skip + Number(limit));
   const totalItems = cardTotal + bankTotal;
   const totalPages = Math.ceil(totalItems / limit);
 
@@ -151,18 +151,19 @@ export const updateDepositStatus = asyncHandler(async (req, res) => {
   const { status, adminNote } = req.body;
 
   const validTransitions = {
-    PENDING: ["SUCCESS", "FAILED", "CANCELLED"],
-    // PAID chỉ cho bank, SUCCESS chỉ cho card
+    PENDING: ["SUCCESS", "FAILED", "CANCELLED", "PAID"],
+    // PAID cho bank deposit, SUCCESS cho card deposit
   };
 
-  // Try CardDeposit first
+  // Determine which model holds this deposit
   let deposit = await CardDeposit.findById(id);
   let isCard = true;
+  let Model = CardDeposit;
 
   if (!deposit) {
-    // Try BankDeposit
     deposit = await BankDeposit.findById(id);
     isCard = false;
+    Model = BankDeposit;
   }
 
   if (!deposit) {
@@ -176,7 +177,25 @@ export const updateDepositStatus = asyncHandler(async (req, res) => {
     );
   }
 
-  // Nếu SUCCESS/PAID → cộng balance cho user
+  // ── CAS (Compare-And-Swap): atomic update only if status hasn't changed ──
+  const oldStatus = deposit.status;
+  const updateFields = { status };
+  if (adminNote) updateFields.adminNote = adminNote;
+
+  const updatedDeposit = await Model.findOneAndUpdate(
+    { _id: id, status: oldStatus }, // CAS filter — only matches if still in old state
+    { $set: updateFields },
+    { new: true },
+  );
+
+  if (!updatedDeposit) {
+    throw new AppError(
+      "Giao dịch đã được xử lý bởi người khác, vui lòng tải lại trang",
+      409,
+    );
+  }
+
+  // ── Balance increment (only after CAS succeeds) ────────────────
   if (status === "SUCCESS" || status === "PAID") {
     const amountToAdd = isCard ? deposit.receivedAmount : deposit.amount;
     const updatedUser = await User.findByIdAndUpdate(
@@ -185,7 +204,6 @@ export const updateDepositStatus = asyncHandler(async (req, res) => {
       { new: true, select: "balance displayName username" },
     );
 
-    // ── Audit log ───────────────────────────────────────────────
     if (updatedUser) {
       logBalanceChange({
         userId: deposit.user,
@@ -195,20 +213,15 @@ export const updateDepositStatus = asyncHandler(async (req, res) => {
         balanceBefore: updatedUser.balance - amountToAdd,
         balanceAfter: updatedUser.balance,
         reference: deposit._id,
-        note: `Admin cập nhật deposit từ ${deposit.status} → ${status}${adminNote ? `: ${adminNote}` : ""}`,
+        note: `Admin cập nhật deposit từ ${oldStatus} → ${status}${adminNote ? `: ${adminNote}` : ""}`,
         ip: req.ip,
       });
     }
   }
 
-  deposit.status = status;
-  if (adminNote) deposit.adminNote = adminNote;
-
-  await deposit.save();
-
   const adapted = isCard
-    ? adaptCardDeposit(deposit)
-    : adaptBankDeposit(deposit);
+    ? adaptCardDeposit(updatedDeposit)
+    : adaptBankDeposit(updatedDeposit);
 
   // ── Admin action audit ──────────────────────────────────────
   const actionMap = {
@@ -221,9 +234,9 @@ export const updateDepositStatus = asyncHandler(async (req, res) => {
     adminName: req.admin.username,
     action: actionMap[status] || `deposit:${status.toLowerCase()}`,
     resource: "deposit",
-    resourceId: deposit._id,
+    resourceId: updatedDeposit._id,
     details: {
-      fromStatus: deposit.status,
+      fromStatus: oldStatus,
       toStatus: status,
       type: isCard ? "card" : "bank",
       amount: isCard ? deposit.receivedAmount : deposit.amount,

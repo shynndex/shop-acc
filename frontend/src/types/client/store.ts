@@ -13,8 +13,6 @@ export interface AuthState {
     username: string;
     password: string;
     email: string;
-    firstName: string;
-    lastName: string;
   }) => Promise<boolean>;
   signOut: () => Promise<void>;
   checkAuth: () => Promise<User | null>;

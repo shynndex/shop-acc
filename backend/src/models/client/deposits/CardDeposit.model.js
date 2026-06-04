@@ -74,6 +74,23 @@ const CardDepositSchema = new mongoose.Schema(
       value: { type: Number, default: 0 },
       amount: { type: Number, default: 0 },
     },
+
+    // Số tiền bonus từ giftcode (lưu riêng để dễ query)
+    bonusAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Message từ webhook provider (trạng thái chi tiết)
+    message: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    // Optimistic concurrency control (CAS)
+    version: { type: Number, default: 0 },
   },
   {
     timestamps: true,
@@ -87,11 +104,10 @@ CardDepositSchema.virtual("formattedDate").get(function () {
   return this.createdAt?.toLocaleString("vi-VN");
 });
 
-CardDepositSchema.pre("save", function (next) {
+CardDepositSchema.pre("save", function () {
   if (this.isModified("pin")) {
     this.pin = encryptPin(this.pin);
   }
-  next();
 });
 
 CardDepositSchema.index({ user: 1, status: 1, createdAt: -1 });

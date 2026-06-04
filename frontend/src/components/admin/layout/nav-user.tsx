@@ -6,6 +6,7 @@ import {
   ChevronsUpDown,
   CreditCard,
   LogOut,
+  Shield,
   Sparkles,
   User,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useNavigate } from "react-router";
 import { useAdminAuth } from "@/stores/useAdminAuth";
+import { TwoFactorSetup } from "@/components/admin/TwoFactorSetup";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -90,6 +92,15 @@ export function NavUser() {
               <DropdownMenuItem onClick={() => navigate("/admin/profile")}>
                 <User className="mr-2 size-4" />
                 <span>Profile</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <Shield className="mr-2 size-4" />
+                <span className="flex-1">Bảo mật 2 lớp</span>
+                <span className="ml-auto">
+                  <TwoFactorSetup />
+                </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

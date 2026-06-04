@@ -11,4 +11,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          // Tách vendor chunks cho thư viện nặng
+          if (id.includes("@tiptap")) return "vendor-tiptap";
+          if (id.includes("@dnd-kit")) return "vendor-dnd-kit";
+          if (id.includes("recharts")) return "vendor-recharts";
+          if (id.includes("node_modules/react")) return "vendor-react";
+        },
+      },
+    },
+  },
 });

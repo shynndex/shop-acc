@@ -16,15 +16,11 @@ export const authService = {
     username: string,
     password: string,
     email: string,
-    firstName: string,
-    lastName: string,
   ): Promise<{ message: string }> => {
     const response = await api.post<{ message: string }>("/auth/sign-up", {
       username,
       password,
       email,
-      firstName,
-      lastName,
     });
     return response;
   },
@@ -51,6 +47,31 @@ export const authService = {
         email,
       },
     );
+    return response;
+  },
+
+  forgotPassword: async (email: string) => {
+    const response = await api.post<{ success: boolean; message: string }>(
+      "/auth/forgot-password",
+      { email },
+    );
+    return response;
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    const response = await api.post<{ success: boolean; message: string }>(
+      "/auth/reset-password",
+      { token, password },
+    );
+    return response;
+  },
+
+  updateDisplayName: async (displayName: string) => {
+    const response = await api.put<{
+      success: boolean;
+      message: string;
+      data: { displayName: string };
+    }>("/auth/display-name", { displayName });
     return response;
   },
 };

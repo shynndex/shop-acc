@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation, Link } from "react-router-dom";
 
 import { AppSidebar } from "@/components/admin/layout/app-sidebar";
 
@@ -21,14 +21,39 @@ import {
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+
+const breadcrumbLabels: Record<string, string> = {
+  "/admin": "Dashboard",
+  "/admin/orders": "Đơn hàng",
+  "/admin/deposits": "Giao dịch nạp tiền",
+  "/admin/analytics": "Phân tích",
+  "/admin/reconciliation": "Đối soát",
+  "/admin/payment-monitoring": "Giám sát TT",
+  "/admin/giftcodes": "Mã giảm giá",
+  "/admin/reviews": "Đánh giá",
+  "/admin/users": "Người dùng",
+  "/admin/accounts": "Tài khoản",
+  "/admin/audit-logs": "Nhật ký hoạt động",
+  "/admin/config": "Cấu hình",
+  "/admin/config/general": "Cấu hình chung",
+  "/admin/config/banks": "Cấu hình ngân hàng",
+  "/admin/config/cards": "Cấu hình thẻ cào",
+  "/admin/admins": "Quản trị viên",
+  "/admin/profile": "Thông tin cá nhân",
+};
+
 export default function AdminLayout() {
+  const location = useLocation();
+  const currentLabel = breadcrumbLabels[location.pathname] || "Dashboard";
+
   return (
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
 
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/50 bg-background/80 backdrop-blur-sm px-4 sm:px-6">
             <SidebarTrigger className="-ml-1" />
 
             <Separator
@@ -39,7 +64,7 @@ export default function AdminLayout() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin">
+                  <BreadcrumbLink render={<Link to="/admin" />}>
                     Admin
                   </BreadcrumbLink>
                 </BreadcrumbItem>
@@ -47,14 +72,16 @@ export default function AdminLayout() {
                 <BreadcrumbSeparator />
 
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                  <BreadcrumbPage>{currentLabel}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </header>
 
-          <main className="flex flex-1 flex-col p-4">
-            <Outlet />
+          <main className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
+            <ErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </main>
         </SidebarInset>
       </SidebarProvider>

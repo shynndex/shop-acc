@@ -11,6 +11,7 @@ import {
   updateAccount,
   deleteAccount,
   toggleAccountStatus,
+  exportAccountsCsv,
 } from "../../controllers/admin/account.controller.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import {
@@ -26,6 +27,7 @@ router.use(adminProtect);
 
 // read
 router.get("/", getAccounts);
+router.get("/export", exportAccountsCsv);
 router.get("/:id", getAccountById);
 
 // write

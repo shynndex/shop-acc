@@ -10,8 +10,8 @@ export const analyticsService = {
    * Fetch toàn bộ dashboard data với filters
    */
   getDashboard: async (filters?: AnalyticsFilters) => {
-    const { data } = await api.get<AnalyticsDashboardResponse>(
-      "/admin/analytics/dashboard",
+    const data = await api.get<AnalyticsDashboardResponse>(
+      "/analytics/dashboard",
       { params: filters },
     );
     return data;
@@ -21,8 +21,8 @@ export const analyticsService = {
    * Fetch riêng revenue trend (để refresh chart khi đổi date range)
    */
   getRevenueTrend: async (filters?: AnalyticsFilters) => {
-    const { data } = await api.get<{ data: RevenueDataPoint[] }>(
-      "/admin/analytics/revenue-trend",
+    const data = await api.get<RevenueDataPoint[]>(
+      "/analytics/revenue-trend",
       { params: filters },
     );
     return data;

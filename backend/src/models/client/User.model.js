@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema(
     verificationToken: { type: String },
     verificationTokenExpiry: { type: Date },
 
+    // ── Password reset ───────────────────────────────────────────
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+
     // ── Brute-force protection (ẩn khỏi API mặc định) ──────────────────────
     failedLoginAttempts: { type: Number, default: 0, select: false },
     lockoutUntil: { type: Date, default: null, select: false },

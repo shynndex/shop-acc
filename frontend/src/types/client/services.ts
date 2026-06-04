@@ -1,7 +1,7 @@
 import type { Account, User } from "@/types/index";
 
 export interface SignInPayload {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -9,8 +9,6 @@ export interface SignUpPayload {
   username: string;
   password: string;
   email: string;
-  firstName: string;
-  lastName: string;
 }
 
 export interface AuthResponse {

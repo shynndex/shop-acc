@@ -6,7 +6,10 @@ import {
   refreshToken,
   verifyEmail,
   resendVerification,
+  forgotPassword,
+  resetPassword,
   changePassword,
+  updateDisplayName,
   getMe,
 } from "../controllers/auth.controller.js";
 import { protectedRoute } from "../middlewares/client/auth.middleware.js";
@@ -16,6 +19,8 @@ import {
   signInSchema,
   changePasswordSchema,
   resendVerificationSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../validation/validation.schemas.js";
 import {
   loginLimiter,
@@ -29,16 +34,16 @@ const router = express.Router();
 router.post("/sign-up", moderateLimiter, validate(signUpSchema), signUp);
 router.post("/sign-in", loginLimiter, validate(signInSchema), signIn);
 
-// ⚡ Brute-force detection — failed attempts tracked in-memory per IP
-// loginLimiter (5 req / 15 min) provides a hard block on top of any
-// application-level account lockout logic.
-router.post("/sign-out", signOut);
-router.post("/refresh-token", refreshToken);
+router.post("/sign-out", moderateLimiter, signOut);
+router.post("/refresh-token", strictLimiter, refreshToken);
 router.get("/verify-email", verifyEmail);
 router.post("/resend-verify", moderateLimiter, validate(resendVerificationSchema), resendVerification);
+router.post("/forgot-password", moderateLimiter, validate(forgotPasswordSchema), forgotPassword);
+router.post("/reset-password", moderateLimiter, validate(resetPasswordSchema), resetPassword);
 
 // Protected routes
 router.get("/me", protectedRoute, getMe);
-router.put("/change-password", protectedRoute, validate(changePasswordSchema), changePassword);
+router.put("/change-password", protectedRoute, moderateLimiter, validate(changePasswordSchema), changePassword);
+router.put("/display-name", protectedRoute, moderateLimiter, updateDisplayName);
 
 export default router;

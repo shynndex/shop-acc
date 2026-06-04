@@ -126,6 +126,15 @@ export const createAccount = asyncHandler(async (req, res) => {
     throw new AppError("Vui lòng điền đầy đủ thông tin", 400);
   }
 
+  const exist = await Account.findOne({
+    "loginInfo.username": loginInfo.username,
+    game,
+    isSold: false,
+  });
+  if (exist) {
+    throw new AppError("Tài khoản game này đã tồn tại trong hệ thống", 409);
+  }
+
   const account = await Account.create({
     title,
     game,
@@ -161,7 +170,22 @@ export const createAccount = asyncHandler(async (req, res) => {
 
 export const updateAccount = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const updateData = { ...req.body };
+
+  // ⚠️ Whitelist strict — chỉ cho update các field an toàn
+  const ALLOWED_FIELDS = [
+    "title", "game", "price", "description", "attributes",
+    "images", "type", "loginInfo", "isActive",
+  ];
+  const updateData = {};
+  for (const key of ALLOWED_FIELDS) {
+    if (key in req.body) {
+      updateData[key] = req.body[key];
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw new AppError("Không có trường nào được phép cập nhật", 400);
+  }
 
   // Không cho phép update trực tiếp owner nếu không phải admin
   if (req.admin.role !== "admin" && req.admin.role !== "super_admin") {
@@ -264,4 +288,61 @@ export const deleteAccount = asyncHandler(async (req, res) => {
     message: "Xóa tài khoản thành công",
     data: { account },
   });
+});
+
+// ============================================================================
+// EXPORT ACCOUNTS CSV
+// GET /api/admin/accounts/export
+// ============================================================================
+
+export const exportAccountsCsv = asyncHandler(async (req, res) => {
+  const { game, status, type } = req.query;
+
+  const query = { isSold: false };
+  if (game) query.game = game;
+  if (status === "active") query.isActive = true;
+  if (status === "inactive") query.isActive = false;
+  if (type) query.type = type;
+
+  const accounts = await Account.find(query)
+    .select("+loginInfo")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const headers = [
+    "Tiêu đề",
+    "Game",
+    "Giá",
+    "Loại",
+    "Trạng thái",
+    "Username",
+    "Password",
+    "Mô tả",
+    "Đã bán",
+    "Ngày tạo",
+  ];
+
+  const csvRows = [headers.join(",")];
+  for (const acc of accounts) {
+    const row = [
+      `"${(acc.title || "").replace(/"/g, '""')}"`,
+      acc.game || "",
+      acc.price,
+      acc.type || "standard",
+      acc.isActive ? "active" : "inactive",
+      `"${(acc.loginInfo?.username || "").replace(/"/g, '""')}"`,
+      `"${(acc.loginInfo?.password || "").replace(/"/g, '""')}"`,
+      `"${(acc.description || "").replace(/"/g, '""')}"`,
+      acc.isSold ? "Yes" : "No",
+      acc.createdAt ? new Date(acc.createdAt).toISOString() : "",
+    ];
+    csvRows.push(row.join(","));
+  }
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=accounts_${Date.now()}.csv`,
+  );
+  res.send("\uFEFF" + csvRows.join("\n"));
 });

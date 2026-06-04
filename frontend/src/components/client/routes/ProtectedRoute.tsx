@@ -6,13 +6,14 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { accessToken, user, checkAuth, loading } = useAuthStore();
   const location = useLocation();
 
+  // Luôn verify token khi mount để phát hiện token hết hạn sớm
+  // Nếu không có token, checkAuth trả về ngay lập tức (không set loading)
   useEffect(() => {
-    if (!accessToken && !user && !loading) {
-      checkAuth();
-    }
-  }, [accessToken, user, loading]);
+    checkAuth();
+  }, []);
 
-  if (loading) {
+  // Chỉ show spinner nếu đang verify mà chưa có cached data
+  if (loading && !accessToken && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

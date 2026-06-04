@@ -20,7 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatVND } from "@/lib/utils";
 import { gameOptions, typeOptions } from "@/constant/account-options";
-import { useAdminAccountStore } from "@/stores/useAdminAccountStore";
+import { useCreateAccount, useUpdateAccount } from "@/hooks/queries/useAdminQueries";
 import type {
   Account,
   AccountImage,
@@ -63,7 +63,9 @@ const AccountForm = ({
   initialData,
   onSuccess,
 }: AccountFormProps) => {
-  const { createAccount, updateAccount, loading } = useAdminAccountStore();
+  const { mutateAsync: createAccount, isPending: creating } = useCreateAccount();
+  const { mutateAsync: updateAccount, isPending: updating } = useUpdateAccount();
+  const loading = creating || updating;
   const isEdit = !!initialData;
 
   const [imageItems, setImageItems] = useState<AccountImage[]>([]);
@@ -186,8 +188,8 @@ const AccountForm = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <DialogContent className="max-h-[92vh] overflow-y-auto p-3 sm:max-w-2xl sm:p-6">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-6">
           <DialogHeader>
             <DialogTitle>
               {isEdit ? "Chỉnh sửa" : "Thêm mới"} tài khoản
@@ -198,7 +200,7 @@ const AccountForm = ({
             </DialogDescription>
           </DialogHeader>
 
-          <FieldGroup className="space-y-4">
+          <FieldGroup className="space-y-3 sm:space-y-4">
             <Field>
               <Label htmlFor="title">
                 Tên tài khoản <span className="text-red-500">*</span>
@@ -272,22 +274,21 @@ const AccountForm = ({
                 Giá bán <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
-                <Input
-                  type="number"
-                  value={formData.price || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      price: Number(e.target.value),
-                    })
-                  }
-                  id="price"
-                  required
-                  min="0"
-                  step="1000"
-                  className="pr-8"
-                  placeholder="0"
-                />
+            <Input
+              type="number"
+              value={formData.price ?? ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  price: e.target.value === "" ? 0 : Number(e.target.value),
+                })
+              }
+              id="price"
+              required
+              min="1000"
+              className="pr-8"
+              placeholder="1000"
+            />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                   đ
                 </span>
@@ -310,7 +311,7 @@ const AccountForm = ({
               />
             </Field>
 
-            <div className="space-y-4 rounded-lg border border-orange-200 bg-orange-50/50 p-3 sm:p-4">
+            <div className="space-y-3 rounded-lg border border-orange-200 bg-orange-50/50 p-3 sm:p-4 transition-all duration-200">
               <Label className="text-orange-700 text-base font-semibold">
                 Thông tin đăng nhập
               </Label>
@@ -361,26 +362,32 @@ const AccountForm = ({
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Label>Thuộc tính bổ sung</Label>
-              <p className="text-xs text-muted-foreground">
-                Thêm thông tin như: Rank, Số skin, Tướng sở hữu...
-              </p>
+            <div className="space-y-3 rounded-lg border p-3 sm:p-4 transition-all duration-200">
+              <div>
+                <Label className="text-base">Thuộc tính bổ sung</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Thêm thông tin như: Rank, Số skin, Tướng sở hữu...
+                </p>
+              </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Input
-                  placeholder="Tên thuộc tính (vd: Rank)"
-                  value={attributeInput.key}
-                  onChange={(e) =>
-                    setAttributeInput({
-                      ...attributeInput,
-                      key: e.target.value,
-                    })
-                  }
-                />
-                <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Tên thuộc tính</Label>
                   <Input
-                    placeholder="Giá trị (vd: Cao Thủ)"
+                    placeholder="VD: Rank"
+                    value={attributeInput.key}
+                    onChange={(e) =>
+                      setAttributeInput({
+                        ...attributeInput,
+                        key: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Giá trị</Label>
+                  <Input
+                    placeholder="VD: Cao Thủ"
                     value={attributeInput.value}
                     onChange={(e) =>
                       setAttributeInput({
@@ -393,36 +400,38 @@ const AccountForm = ({
                       (e.preventDefault(), handleAddAttribute())
                     }
                   />
-                  <Button
-                    type="button"
-                    className="w-full sm:w-auto"
-                    size="icon"
-                    variant="outline"
-                    onClick={handleAddAttribute}
-                  >
-                    +
-                  </Button>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddAttribute}
+                  disabled={!attributeInput.key.trim() || !attributeInput.value.trim()}
+                  className="mt-1 sm:mt-0"
+                >
+                  + Thêm
+                </Button>
               </div>
 
               {Object.keys(formData.attributes).length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-2">
+                <div className="space-y-2 pt-1">
                   {Object.entries(formData.attributes).map(([key, value]) => (
                     <div
                       key={key}
-                      className="flex max-w-full items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-sm"
+                      className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm border transition-all duration-150 hover:bg-muted/80"
                     >
-                      <span className="font-medium text-muted-foreground">
-                        {key}:
-                      </span>
-                      <span className="break-all">{String(value)}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-semibold text-orange-700 shrink-0">{key}:</span>
+                        <span className="text-muted-foreground truncate">{String(value)}</span>
+                      </div>
                       <Button
                         type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleRemoveAttribute(key)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
                         aria-label={`Xóa thuộc tính ${key}`}
                       >
-                        <X className="size-3.5" />
+                        <X className="size-4" />
                       </Button>
                     </div>
                   ))}

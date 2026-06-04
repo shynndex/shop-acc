@@ -269,8 +269,7 @@ function SidebarTrigger({
         toggleSidebar()
       }}
       {...props}
-    >
-      <PanelLeftIcon className="cn-rtl-flip" />
+    >                    <PanelLeftIcon className="cn-rtl-flip transition-transform duration-200 ease-linear group-data-[state=collapsed]/sidebar-wrapper:rotate-180" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

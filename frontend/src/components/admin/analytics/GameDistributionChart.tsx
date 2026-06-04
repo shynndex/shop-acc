@@ -7,7 +7,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import type { GameDistribution } from "@/types/admin/analytics.type";
 
 interface GameDistributionChartProps {
@@ -20,15 +21,15 @@ const COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"
 export function GameDistributionChart({ data, loading }: GameDistributionChartProps) {
   if (loading || data.length === 0) {
     return (
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle>Phân bổ theo game</CardTitle>
           <CardDescription>Số lượng tài khoản bán theo từng game</CardDescription>
         </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
+        <CardContent className="h-[200px] sm:h-[300px] flex items-center justify-center text-muted-foreground">
           {loading ? "Đang tải dữ liệu..." : "Không có dữ liệu"}
         </CardContent>
-      </Card>
+      </GlassCard>
     );
   }
 
@@ -39,43 +40,44 @@ export function GameDistributionChart({ data, loading }: GameDistributionChartPr
     color: item.color || COLORS[idx % COLORS.length],
   }));
 
-  return (
-    <Card>
+  return (      <GlassCard>
       <CardHeader>
         <CardTitle>Phân bổ theo game</CardTitle>
         <CardDescription>Số lượng tài khoản bán theo từng game</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
-              paddingAngle={2}
-              dataKey="value"
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              labelLine={false}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip 
-              formatter={(value: number | string | undefined, name: string | undefined, props: any) => [
-                `${value ?? 0} tài khoản`,
-                props?.payload?.name ?? name
-              ]}
-              labelFormatter={(label) => `Game: ${label}`}
-            />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+        <div className="h-[250px] sm:h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                innerRadius={40}
+                outerRadius={70}
+                paddingAngle={2}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                formatter={(value: number | string | undefined, name: string | undefined, props: any) => [
+                  `${value ?? 0} tài khoản`,
+                  props?.payload?.name ?? name
+                ]}
+                labelFormatter={(label) => `Game: ${label}`}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
         
         {/* Bảng tổng hợp bên dưới chart */}
-        <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           {data.map((item, idx) => (
             <div key={item.game} className="flex items-center gap-2">
               <div 
@@ -93,6 +95,6 @@ export function GameDistributionChart({ data, loading }: GameDistributionChartPr
           ))}
         </div>
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 }

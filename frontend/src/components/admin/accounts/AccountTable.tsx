@@ -22,6 +22,7 @@ import type { CellContext } from "@tanstack/react-table";
 interface AccountTableProps {
   accounts: Account[];
   loading?: boolean;
+  pageSize?: number;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -33,18 +34,27 @@ interface AccountTableProps {
   onEdit?: (id: string) => void;
   onToggleStatus?: (id: string, isActive: boolean) => void;
   onDelete?: (id: string) => void;
+  // row selection
+  enableRowSelection?: boolean;
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: (selection: Record<string, boolean>) => void;
 }
+
 const AccountTable = ({
   accounts,
   loading = false,
+  pageSize = 10,
   pagination = { currentPage: 1, totalPages: 1, totalItems: 0 },
   onPageChange,
   onPageSizeChange,
   onEdit,
   onToggleStatus,
   onDelete,
+  enableRowSelection = false,
+  rowSelection,
+  onRowSelectionChange,
 }: AccountTableProps) => {
-  // Tiêm logic handlers vào cột Actions
+  // Inject logic handlers into Actions column
   const columnsWithHandlers = useMemo(
     () =>
       AccountColumns.map((col) => {
@@ -112,7 +122,10 @@ const AccountTable = ({
       tableClassName="min-w-[860px] lg:min-w-[920px]"
       enableSorting
       enablePagination
-      pageSize={10}
+      enableRowSelection={enableRowSelection}
+      rowSelection={rowSelection}
+      onRowSelectionChange={onRowSelectionChange}
+      pageSize={pageSize}
       totalItems={pagination.totalItems}
       currentPage={pagination.currentPage}
       onPageChange={onPageChange}

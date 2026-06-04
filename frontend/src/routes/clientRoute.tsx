@@ -12,7 +12,11 @@ const ShopPage = lazy(() => import("@/pages/ShopPage"));
 const AccountDetailPage = lazy(() => import("@/pages/AccountDetailPage"));
 const UserProfilePage = lazy(() => import("@/pages/UserProfilePage"));
 const OrderHistoryPage = lazy(() => import("@/pages/OrderHistoryPage"));
-const ComparePage = lazy(() => import("@/pages/ComparePage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
+const VerifyEmailPage = lazy(() => import("@/pages/VerifyEmailPage"));
+const CmsPageView = lazy(() => import("@/pages/CmsPageView"));
 export const clientRoutes = (
   <Route path="/" element={<AppLayout />}>
     <Route index element={<HomePage />} />
@@ -20,18 +24,25 @@ export const clientRoutes = (
     {/* Public routes */}
     <Route path="signin" element={<PublicRoute><SignInPage /></PublicRoute>} />
     <Route path="signup" element={<PublicRoute><SignUpPage /></PublicRoute>} />
+    <Route path="forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+    <Route path="reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+    <Route path="verify-email" element={<VerifyEmailPage />} />
 
-      
     <Route path="tai-khoan">
+      <Route index element={<ShopPage />} />
       <Route path=":categorySlug" element={<ShopPage />} />
       <Route path=":categorySlug/:id" element={<AccountDetailPage />} />
     </Route>
-
-    <Route path="so-sanh" element={<ComparePage />} />
 
      <Route path="me">
       <Route index element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
       <Route path="orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
     </Route>
+
+    {/* CMS Pages */}
+    <Route path="pages/:slug" element={<CmsPageView />} />
+
+    {/* Catch-all 404 */}
+    <Route path="*" element={<NotFoundPage />} />
   </Route>
 );

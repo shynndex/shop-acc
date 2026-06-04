@@ -41,11 +41,11 @@ interface DepositDetailModalProps {
 }
 
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-500 hover:bg-yellow-600",
-  PAID: "bg-blue-500 hover:bg-blue-600",
-  SUCCESS: "bg-green-500 hover:bg-green-600",
-  FAILED: "bg-red-500 hover:bg-red-600",
-  CANCELLED: "bg-gray-500 hover:bg-gray-600",
+  PENDING: "bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700",
+  PAID: "bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700",
+  SUCCESS: "bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700",
+  FAILED: "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700",
+  CANCELLED: "bg-gray-500 hover:bg-gray-600 text-white dark:bg-gray-600 dark:hover:bg-gray-700",
 };
 
 const statusLabels: Record<string, string> = {
@@ -148,7 +148,7 @@ export function DepositDetailModal({
 
         <div className="space-y-6">
           {/* === Basic Info === */}
-          <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/30 rounded-lg">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
@@ -205,12 +205,12 @@ export function DepositDetailModal({
           {/* === Type-specific Details === */}
           <div className="space-y-4">
             {deposit.type === "bank" && deposit.bankInfo && (
-              <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 border-blue-200">
+              <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50">
                 <div className="flex items-center gap-2 text-blue-700 font-medium">
                   <Banknote className="h-4 w-4" />
                   Thông tin chuyển khoản
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div>
                     <Label className="text-xs text-muted-foreground">
                       Ngân hàng
@@ -251,7 +251,7 @@ export function DepositDetailModal({
                   <CreditCard className="h-4 w-4" />
                   Thông tin thẻ cào
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div>
                     <Label className="text-xs text-muted-foreground">
                       Nhà cung cấp
@@ -282,7 +282,7 @@ export function DepositDetailModal({
                       {deposit.cardInfo.serial || "N/A"}
                     </div>
                   </div>
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2">
                     <Label className="text-xs text-muted-foreground">PIN</Label>
                     <div
                       className="font-mono text-sm bg-muted px-2 py-1 rounded inline-block cursor-pointer"
@@ -305,7 +305,7 @@ export function DepositDetailModal({
           {/* === Admin Note === */}
           <div className="space-y-2">
             <Label htmlFor="adminNote" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+              <FileText className="size-4" />
               Ghi chú admin
             </Label>
             <Textarea

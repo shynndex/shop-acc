@@ -42,9 +42,11 @@ export const errorHandler = (err, req, res, next) => {
 
   // Mongoose CastError (ObjectId invalid)
   if (err.name === "CastError") {
+    console.error("[CastError]", err.message, "Path:", err.path, "Value:", err.value);
     return res.status(400).json({
       success: false,
       message: "ID không hợp lệ",
+      ...(process.env.NODE_ENV === "development" && { stack: err.stack, path: err.path, value: err.value }),
     });
   }
 

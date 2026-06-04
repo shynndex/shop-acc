@@ -18,6 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FolderX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DataTablePagination from "./DataTablePagination";
@@ -45,6 +47,9 @@ export interface DataTableProps<TData, TValue> {
   emptyState?: React.ReactNode;
   loadingState?: React.ReactNode;
   onRowClick?: (row: TData) => void;
+  /** Controlled row selection (record of row id -> boolean) */
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: (selection: Record<string, boolean>) => void;
 }
 
 const DataTable = <TData, TValue>({
@@ -65,17 +70,66 @@ const DataTable = <TData, TValue>({
   emptyState,
   loadingState,
   onRowClick,
+  rowSelection: externalRowSelection,
+  onRowSelectionChange: externalOnRowSelectionChange,
 }: DataTableProps<TData, TValue>) => {
-  const [rowSelection, setRowSelection] = React.useState<
+  const [internalRowSelection, setInternalRowSelection] = React.useState<
     Record<string, boolean>
   >({});
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
+  // Use controlled or internal row selection
+  const rowSelection = externalRowSelection ?? internalRowSelection;
+  const setRowSelection = externalOnRowSelectionChange ?? setInternalRowSelection;
+
+  // Add select column when row selection is enabled
+  const columnsWithSelect = React.useMemo(() => {
+    if (!enableRowSelection) return columns;
+
+    const selectColumn: ColumnDef<TData, TValue> = {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+          className="translate-y-[2px]"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          className="translate-y-[2px]"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      meta: {
+        headerClassName: "w-[40px]",
+        cellClassName: "w-[40px]",
+      } as DataTableColumnMeta,
+    };
+
+    return [selectColumn, ...columns];
+  }, [columns, enableRowSelection]);
+
+  // Get row id for selection
+  const getRowId = React.useCallback((row: TData) => {
+    return (row as any)._id || (row as any).id || (row as any).transactionId;
+  }, []);
+
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsWithSelect,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
@@ -92,7 +146,7 @@ const DataTable = <TData, TValue>({
   // Default loading state
   const defaultLoadingState = Array.from({ length: pageSize }).map((_, i) => (
     <TableRow key={i} className="animate-pulse">
-      {columns.map((_, j) => (
+      {columnsWithSelect.map((_, j) => (
         <TableCell key={j}>
           <div className="h-4 w-full rounded bg-muted"></div>
         </TableCell>
@@ -108,19 +162,19 @@ const DataTable = <TData, TValue>({
         colSpan={visibleColumnCount}
         className="h-32 p-0 align-middle whitespace-normal"
       >
-        <div className="mx-auto flex h-full w-full flex-col items-center justify-center text-center text-muted-foreground">
-          <FolderX className="mb-2 h-12 w-12 opacity-50" />
-          <p className="text-sm font-medium">Không có dữ liệu</p>
-          <p className="mt-1 text-xs">Thêm tài khoản đầu tiên để bắt đầu</p>
-        </div>
+        <EmptyState
+          icon={FolderX}
+          title="Không có dữ liệu"
+          description="Thêm tài khoản đầu tiên để bắt đầu"
+        />
       </TableCell>
     </TableRow>
   );
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="rounded-md border">
-        <Table className={tableClassName}>
+      <div className="w-full overflow-x-auto rounded-md border">
+        <Table className={cn(tableClassName, "min-w-[650px] lg:min-w-0")}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -152,9 +206,11 @@ const DataTable = <TData, TValue>({
                       key={row.id}
                       data-state={row.getIsSelected() && "selected"}
                       onClick={() => onRowClick?.(row.original)}
-                      className={
-                        onRowClick ? "cursor-pointer hover:bg-muted/50" : ""
-                      }
+                      className={cn(
+                        "transition-colors duration-150",
+                        onRowClick ? "cursor-pointer hover:bg-muted/50" : "",
+                        row.getIsSelected() && "bg-muted/50",
+                      )}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell

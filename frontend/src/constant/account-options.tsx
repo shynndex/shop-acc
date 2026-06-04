@@ -14,6 +14,7 @@ export const typeOptions = [
   { value: "vip", label: "VIP" },
   { value: "reg", label: "Reg" },
   { value: "random", label: "Random" },
+  { value: "trang", label: "Trang" },
 ];
 
 export const statusOptions = [

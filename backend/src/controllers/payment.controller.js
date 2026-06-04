@@ -141,14 +141,23 @@ export const createDepositInfo = asyncHandler(async (req, res) => {
 });
 
 export const payosWebhook = asyncHandler(async (req, res) => {
-  const body = req.body;
-  const isValid = payOS.verifyPaymentWebhookData(body);
+  // req.body là Buffer từ express.raw() — parse sang JSON trước
+  let body;
+  try {
+    body = JSON.parse(req.body.toString());
+  } catch (e) {
+    return res.status(400).json({ code: "99", desc: "Invalid JSON body" });
+  }
 
-  if (!isValid) {
+  // PayOS SDK v2: payOS.webhooks.verify() nhận parsed object { data, signature }
+  // Ném WebhookError nếu signature không hợp lệ
+  let data;
+  try {
+    data = await payOS.webhooks.verify(body);
+  } catch (e) {
     return res.status(400).json({ code: "99", desc: "Invalid signature" });
   }
 
-  const data = body.data;
   const orderCode = data.orderCode;
 
   // Tìm đơn hàng theo orderCode
@@ -195,7 +204,11 @@ export const payosWebhook = asyncHandler(async (req, res) => {
 
     if (deposit.type === "deposit") {
       // Deposit flow: CAS deposit status update + add balance
-      await updateDepositStatusCAS(deposit, "PAID", { amount: data.amount, transactionData: data }, session);
+      await updateDepositStatusCAS(deposit, "PAID", {
+        amount: data.amount,
+        transactionData: data,
+        ...(deposit.discount?.amount ? { bonusAmount: deposit.discount.amount } : {}),
+      }, session);
 
       const totalCredit = data.amount + (deposit.discount?.amount || 0);
       const updatedUser = await User.findByIdAndUpdate(
@@ -219,10 +232,7 @@ export const payosWebhook = asyncHandler(async (req, res) => {
         });
       }
 
-      if (deposit.discount?.amount) {
-        deposit.bonusAmount = deposit.discount.amount;
-        // Synced via CAS update above — version already incremented
-      }
+      // bonusAmount already synced via CAS update above — no in-memory set needed
 
       // Telegram notification (silent fail)
       const depositUser = await User.findById(deposit.user).select("displayName username balance");
@@ -329,7 +339,14 @@ export const submitCardDeposit = asyncHandler(async (req, res) => {
 });
 
 export const cardWebhook = asyncHandler(async (req, res) => {
-  const body = req.body;
+  // req.body là Buffer từ express.raw() — parse sang JSON TRƯỚC
+  // vì verifyWebhookSignature truy cập body.callback_sign, body.code, body.serial
+  let body;
+  try {
+    body = JSON.parse(req.body.toString());
+  } catch (e) {
+    return res.status(400).json({ success: false, message: "Invalid JSON body" });
+  }
 
   if (!verifyWebhookSignature(body)) {
     console.warn("[Card Webhook] Invalid signature");
@@ -368,17 +385,45 @@ export const cardWebhook = asyncHandler(async (req, res) => {
   session.startTransaction();
 
   try {
-    deposit.status = parsed.success ? "SUCCESS" : "FAILED";
-    deposit.apiStatusCode = parsed.code;
-    deposit.apiTransId = parsed.transId;
-    deposit.apiRequestId = parsed.requestId;
-    deposit.receivedAmount = parsed.receivedAmount;
-    deposit.isAmountMismatch = parsed.isAmountMismatch;
-    deposit.providerResponse = parsed.raw;
-    deposit.message = parsed.message;
+    // ── CAS atomic update: only succeeds if status & version unchanged ──
+    const oldVersion = deposit.version || 0;
+
+    const updateFields = {
+      status: parsed.success ? "SUCCESS" : "FAILED",
+      apiStatusCode: parsed.code,
+      apiTransId: parsed.transId,
+      apiRequestId: parsed.requestId,
+      receivedAmount: parsed.receivedAmount,
+      isAmountMismatch: parsed.isAmountMismatch,
+      providerResponse: parsed.raw,
+      message: parsed.message,
+      ...(deposit.discount?.amount ? { bonusAmount: deposit.discount.amount } : {}),
+    };
+
+    const updatedDeposit = await CardDeposit.findOneAndUpdate(
+      {
+        _id: deposit._id,
+        status: "PENDING",
+        version: oldVersion, // CAS filter
+      },
+      {
+        $set: updateFields,
+        $inc: { version: 1 },
+      },
+      { new: true, session },
+    );
+
+    if (!updatedDeposit) {
+      // Another webhook already processed this deposit
+      await session.abortTransaction();
+      console.warn("[Card Webhook CAS Conflict] Deposit already processed:", deposit._id);
+      return res
+        .status(200)
+        .json({ success: true, message: "already processed" });
+    }
 
     if (parsed.success) {
-      const totalCredit = parsed.receivedAmount + (deposit.discount?.amount || 0);
+      const totalCredit = parsed.receivedAmount + (updatedDeposit.discount?.amount || 0);
       const updatedUser = await User.findByIdAndUpdate(
         deposit.user,
         { $inc: { balance: totalCredit } },
@@ -395,17 +440,11 @@ export const cardWebhook = asyncHandler(async (req, res) => {
           balanceBefore: updatedUser.balance - totalCredit,
           balanceAfter: updatedUser.balance,
           reference: deposit._id,
-          note: `Nạp thẻ ${deposit.provider}${deposit.discount?.code ? ` (giảm: ${deposit.discount.code})` : ""}`,
+          note: `Nạp thẻ ${updatedDeposit.provider}${updatedDeposit.discount?.code ? ` (giảm: ${updatedDeposit.discount.code})` : ""}`,
           ip: req.ip,
         });
       }
-
-      if (deposit.discount?.amount) {
-        deposit.bonusAmount = deposit.discount.amount;
-      }
     }
-
-    await deposit.save({ session });
     await session.commitTransaction();
 
     // Telegram notification (silent fail)

@@ -1,16 +1,16 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 export const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { accessToken, user, checkAuth, loading } = useAuthStore();
-  const navigate = useNavigate();
 
+  // Nếu có token nhưng chưa có user data (persist chưa hydrate), thử load
   useEffect(() => {
-    if (accessToken && user) {
+    if (accessToken && !user) {
       checkAuth();
     }
-  }, [accessToken, loading, checkAuth]);
+  }, []);
 
   if (loading) {
     return (

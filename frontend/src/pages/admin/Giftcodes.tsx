@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import {
   Dialog,
   DialogContent,
@@ -27,51 +28,51 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty";
+import { SkeletonTable } from "@/components/ui/skeletons";
 
-import { giftcodeService } from "@/services/admin/giftcode.service";
-import type { Giftcode, CreateGiftcodePayload, UpdateGiftcodePayload } from "@/types/admin/giftcode.type";
-import { Loader2, Plus, Search, Tag, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useGiftcodesQuery, useCreateGiftcode, useToggleGiftcodeStatus, useDeleteGiftcode } from "@/hooks/queries/useAdminQueries";
+import { exportTableToCsv } from "@/hooks/useExportCsv";
+import type { Giftcode, CreateGiftcodePayload } from "@/types/admin/giftcode.type";
+import { PageHeader } from "@/components/admin/shared";
+import { Download, Loader2, Plus, Search, Tag, Trash2, Gift } from "lucide-react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
+const CSV_COLUMNS = [
+  { key: "code", label: "Mã code" },
+  { key: "type", label: "Loại" },
+  { key: "value", label: "Giá trị" },
+  { key: "usedCount", label: "Đã dùng" },
+  { key: "maxUses", label: "Tối đa" },
+  { key: "expiresAt", label: "Hạn sử dụng" },
+  { key: "isActive", label: "Hoạt động" },
+  { key: "minOrderAmount", label: "Đơn tối thiểu" },
+];
+
 const GiftcodesPage = () => {
-  const [giftcodes, setGiftcodes] = useState<Giftcode[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+
+  const { data, isLoading } = useGiftcodesQuery({ page, limit: 20, search: search || undefined });
+
+  const { mutateAsync: createGiftcode } = useCreateGiftcode();
+  const { mutateAsync: toggleStatus } = useToggleGiftcodeStatus();
+  const { mutateAsync: deleteGiftcode } = useDeleteGiftcode();
+
+  const giftcodes: Giftcode[] = data?.giftcodes || [];
+  const totalPages = data?.totalPages || 1;
   const [showCreate, setShowCreate] = useState(false);
-
-  const fetchList = async () => {
-    setLoading(true);
-    try {
-      const data = await giftcodeService.list({ page, limit: 20, search: search || undefined });
-      setGiftcodes(data.data?.giftcodes || data.giftcodes || []);
-      const pagination = data.data || data;
-      setTotalPages(pagination.totalPages || 1);
-    } catch (error: any) {
-      toast.error("Không thể tải danh sách giftcode");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchList();
-  }, [page]);
 
   const handleSearch = () => {
     setPage(1);
-    fetchList();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bạn có chắc chắn muốn xoá giftcode này?")) return;
     try {
-      await giftcodeService.delete(id);
+      await deleteGiftcode(id);
       toast.success("Đã xoá giftcode");
-      fetchList();
     } catch (error: any) {
       toast.error(error?.message || "Xoá thất bại");
     }
@@ -79,9 +80,8 @@ const GiftcodesPage = () => {
 
   const handleToggleActive = async (giftcode: Giftcode) => {
     try {
-      await giftcodeService.update(giftcode._id, { isActive: !giftcode.isActive });
+      await toggleStatus({ id: giftcode._id, isActive: !giftcode.isActive });
       toast.success(giftcode.isActive ? "Đã vô hiệu hoá" : "Đã kích hoạt");
-      fetchList();
     } catch (error: any) {
       toast.error(error?.message || "Cập nhật thất bại");
     }
@@ -96,7 +96,7 @@ const GiftcodesPage = () => {
   };
 
   const getStatusBadge = (gc: Giftcode) => {
-    if (!gc.isActive) return <Badge variant="outline" className="text-gray-500">Tắt</Badge>;
+    if (!gc.isActive) return <Badge variant="outline" className="text-muted-foreground">Tắt</Badge>;
     if (gc.maxUses !== null && gc.usedCount >= gc.maxUses) return <Badge variant="outline" className="text-orange-500">Hết lượt</Badge>;
     if (gc.expiresAt && new Date(gc.expiresAt) < new Date()) return <Badge variant="outline" className="text-red-500">Hết hạn</Badge>;
     return <Badge className="bg-green-100 text-green-700">Hoạt động</Badge>;
@@ -104,29 +104,44 @@ const GiftcodesPage = () => {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Tag className="size-6" /> Quản lý mã giảm giá
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Tạo và quản lý giftcode / mã giảm giá cho người dùng
-          </p>
-        </div>
-        <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 size-4" /> Tạo mã
+      <PageHeader
+        title="Quản lý mã giảm giá"
+        description="Tạo và quản lý giftcode / mã giảm giá cho người dùng"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportTableToCsv(
+                  giftcodes.map((gc) => ({
+                    ...gc,
+                    value: gc.type === "percent" ? `${gc.value}%` : `${gc.value.toLocaleString("vi-VN")}đ`,
+                    expiresAt: gc.expiresAt ? new Date(gc.expiresAt).toLocaleDateString("vi-VN") : "Không giới hạn",
+                    isActive: getStatusBadge(gc).props.children,
+                  })),
+                  CSV_COLUMNS,
+                  `giftcodes_${Date.now()}.csv`,
+                )
+              }
+              disabled={giftcodes.length === 0}
+            >
+              <Download className="mr-2 size-4" />
+              Export CSV
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <CreateGiftcodeForm onSuccess={() => { setShowCreate(false); fetchList(); }} />
-          </DialogContent>
-        </Dialog>
-      </div>
+            <Dialog open={showCreate} onOpenChange={setShowCreate}>
+              <DialogTrigger
+                render={<Button><Plus className="mr-2 size-4" /> Tạo mã</Button>}
+              />
+              <DialogContent className="sm:max-w-md">
+                <CreateGiftcodeForm onSuccess={() => { setShowCreate(false); }} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      />
 
-      <div className="flex items-center gap-2 mb-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center mb-4">
+        <div className="relative flex-1 w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             placeholder="Tìm theo mã code..."
@@ -136,21 +151,28 @@ const GiftcodesPage = () => {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" size="sm" onClick={handleSearch}>Tìm</Button>
+        <Button variant="outline" size="sm" onClick={handleSearch} className="w-full sm:w-auto">Tìm</Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-6 space-y-3">
-              {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+      <GlassCard className="overflow-hidden">
+        <CardContent className="p-0 overflow-x-auto">
+          {isLoading ? (
+            <div className="p-6 min-w-[600px]">
+              <SkeletonTable rows={5} cols={7} />
             </div>
           ) : giftcodes.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
-              Chưa có mã giảm giá nào. Hãy tạo mã đầu tiên!
-            </div>
+            <EmptyState
+              icon={Gift}
+              title="Chưa có mã giảm giá nào"
+              description="Hãy tạo mã giảm giá đầu tiên để bắt đầu khuyến mãi!"
+              action={
+                <Button onClick={() => setShowCreate(true)}>
+                  <Plus className="mr-2 size-4" /> Tạo mã đầu tiên
+                </Button>
+              }
+            />
           ) : (
-            <Table>
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Mã code</TableHead>
@@ -164,7 +186,7 @@ const GiftcodesPage = () => {
               </TableHeader>
               <TableBody>
                 {giftcodes.map((gc) => (
-                  <TableRow key={gc._id}>
+                  <TableRow key={gc._id} className="transition-colors duration-150 hover:bg-muted/50">
                     <TableCell className="font-mono font-bold">{gc.code}</TableCell>
                     <TableCell>{getTypeBadge(gc.type)}</TableCell>
                     <TableCell>
@@ -210,16 +232,17 @@ const GiftcodesPage = () => {
             </Table>
           )}
         </CardContent>
-      </Card>
+      </GlassCard>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <Button
               key={p}
               variant={p === page ? "default" : "outline"}
               size="sm"
               onClick={() => setPage(p)}
+              className={p === page ? "bg-gradient-brand text-white border-0 shadow-glow-sm" : ""}
             >
               {p}
             </Button>
@@ -240,6 +263,8 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
   const [maxUses, setMaxUses] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const { mutateAsync: createGiftcode } = useCreateGiftcode();
 
   const formatCode = (input: string) => {
     return input.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -263,7 +288,7 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
 
     setSubmitting(true);
     try {
-      await giftcodeService.create(payload);
+      await createGiftcode(payload);
       toast.success("Tạo giftcode thành công!");
       onSuccess();
     } catch (error: any) {
@@ -281,7 +306,7 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
       </DialogHeader>
 
       <div className="space-y-4 py-4">
-        <div>
+        <div className="space-y-1.5">
           <label className="text-sm font-medium">Mã code *</label>
           <Input
             placeholder="VD: SAMSAM10"
@@ -289,10 +314,8 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
             onChange={(e) => setCode(formatCode(e.target.value))}
             maxLength={20}
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
+        </div>          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">Loại giảm *</label>
             <Select value={type} onValueChange={(v: "percent" | "fixed") => setType(v)}>
               <SelectTrigger>
@@ -304,7 +327,7 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">Giá trị *</label>
             <Input
               type="number"
@@ -317,8 +340,8 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">Đơn hàng tối thiểu</label>
             <Input
               type="number"
@@ -327,7 +350,7 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
               onChange={(e) => setMinOrderAmount(e.target.value)}
             />
           </div>
-          <div>
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">Số lượt tối đa</label>
             <Input
               type="number"
@@ -338,7 +361,7 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
           </div>
         </div>
 
-        <div>
+        <div className="space-y-1.5">
           <label className="text-sm font-medium">Hạn sử dụng</label>
           <Input
             type="date"

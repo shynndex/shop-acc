@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
+import { GradientButton } from "@/components/ui/gradient-button";
 import {
   Field,
   FieldDescription,
@@ -10,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
 import { authService } from "@/services/client/authService";
@@ -24,21 +26,37 @@ export function LoginForm({
   const { signIn, loading } = useAuthStore();
 
   const [formData, setFormData] = useState({
-    email: "",
+    identifier: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
 
+  // Tự điền email nếu vừa đăng ký xong (toast đã hiển thị ở signup)
+  useEffect(() => {
+    if (location.state?.registered) {
+      if (location.state?.email) {
+        setFormData((prev) => ({ ...prev, identifier: location.state.email }));
+      }
+      // Xoá state để không hiện lại khi refresh
+      navigate(location.pathname, { replace: true });
+    }
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleResend = async () => {      const email = unverifiedEmail || formData.email.trim();
+  const handleResend = async () => {      const email = unverifiedEmail || formData.identifier.trim();
     if (!email) {
       toast.error("Vui lòng nhập email để gửi lại link xác thực");
+      return;
+    }
+    // Chỉ gửi nếu identifier là email (chứa @)
+    if (!email.includes("@")) {
+      toast.error("Vui lòng nhập email của bạn để gửi lại link xác thực");
       return;
     }
     try {
@@ -47,7 +65,7 @@ export function LoginForm({
       toast.success("Đã gửi lại email xác thực. Vui lòng kiểm tra hộp thư.");
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.message || "Có lỗi khi gửi lại email xác thực",
+        error?.message || "Có lỗi khi gửi lại email xác thực",
       );
     } finally {
       setResending(false);
@@ -56,11 +74,11 @@ export function LoginForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const email = formData.email.trim();
+    const identifier = formData.identifier.trim();
     const password = formData.password.trim();
 
-    if (!email || !password) {
-      toast.error("Vui lòng nhập đầy đủ email và mật khẩu");
+    if (!identifier || !password) {
+      toast.error("Vui lòng nhập email/tên đăng nhập và mật khẩu");
       return;
     }
 
@@ -69,7 +87,7 @@ export function LoginForm({
 
     try {
       const success = await signIn({
-        email,
+        identifier,
         password,
       });
 
@@ -82,15 +100,14 @@ export function LoginForm({
       }
     } catch (error: any) {
       // Nếu lỗi 403 (email chưa xác thực), hiển thị nút gửi lại
-      if (error?.response?.status === 403) {
-        setUnverifiedEmail(email);
+      const msg = error?.message || "";
+      if (msg.includes("chưa được xác thực")) {
+        setUnverifiedEmail(identifier);
         toast.error(
           "Email chưa được xác thực. Vui lòng kiểm tra hộp thư hoặc gửi lại link xác thực.",
         );
       } else {
-        toast.error(
-          "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.",
-        );
+        toast.error(msg || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
       }
     }
   };
@@ -103,45 +120,44 @@ export function LoginForm({
       )}
       {...props}
     >
-      <Card className="overflow-hidden p-0 w-4xl h-150 border-blue-700 bg-white">
-        <CardContent className="grid p-0 md:grid-cols-2 w-full h-full">
-          <form className="bg-white p-6 md:p-8" onSubmit={handleSubmit}>
+      <GlassCard className="overflow-hidden p-0 border-0 shadow-xl">
+        <CardContent className="grid p-0 md:grid-cols-2 w-full">
+          <form className="glass-strong p-6 sm:p-8" onSubmit={handleSubmit}>
             <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Đăng nhập</h1>
-                <p className=" text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 text-center">                  <h1 className="text-2xl font-bold">Đăng nhập</h1>
+                <p className="text-sm text-muted-foreground">
                   Vui lòng đăng nhập để sử dụng dịch vụ của chúng tôi
                 </p>
               </div>
               <Field>
-                <FieldLabel>Email</FieldLabel>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Email"
-                  className="border-blue-700 focus-visible:ring-blue-600"
+                <FieldLabel>Email hoặc tên đăng nhập</FieldLabel>
+                <Input                    id="identifier"
+                    name="identifier"
+                    type="text"
+                    placeholder="Email hoặc tên đăng nhập"
+                    className="border-border/50 focus-visible:ring-blue-500 bg-muted/20"
                   required
                   disabled={loading}
-                  value={formData.username}
+                  value={formData.identifier}
                   onChange={handleChange}
+                  autoComplete="username"
                 />
               </Field>
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Mật khẩu</FieldLabel>
-                  <a
-                    href="#"
+                  <Link
+                    to="/forgot-password"
                     className="ml-auto text-sm text-blue-700 underline-offset-2 hover:underline"
                   >
                     Quên mật khẩu?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative">
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    className="border-blue-700 focus-visible:ring-blue-600 pr-10"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  className="border-border/50 focus-visible:ring-blue-500 pr-10 bg-muted/20"
                     value={formData.password}
                     onChange={handleChange}
                     required
@@ -169,10 +185,16 @@ export function LoginForm({
                   <p className="text-sm text-amber-800 font-medium">
                     ✉️ Email chưa được xác thực
                   </p>
-                  <p className="text-xs text-amber-700">
-                    Vui lòng kiểm tra hộp thư <strong>{unverifiedEmail}</strong>{" "}
-                    (kể cả mục Spam) hoặc nhấn nút bên dưới để gửi lại link xác thực.
-                  </p>
+                  {unverifiedEmail.includes("@") ? (
+                    <p className="text-xs text-amber-700">
+                      Vui lòng kiểm tra hộp thư <strong>{unverifiedEmail}</strong>{" "}
+                      (kể cả mục Spam) hoặc nhấn nút bên dưới để gửi lại link xác thực.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-700">
+                      Vui lòng nhập email của bạn vào ô trên và nhấn nút bên dưới để gửi lại link xác thực.
+                    </p>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
@@ -187,20 +209,20 @@ export function LoginForm({
               )}
 
               <Field>
-                <Button
+                <GradientButton
                   type="submit"
-                  className="w-full bg-blue-700 text-white hover:bg-blue-800"
+                  className="w-full h-11"
                   disabled={loading}
                 >
                   {loading ? (
-                    <span className="flex items-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
                       Đang đăng nhập...
                     </span>
                   ) : (
                     "Đăng nhập"
                   )}
-                </Button>
+                </GradientButton>
               </Field>
               {/* <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with
@@ -234,48 +256,40 @@ export function LoginForm({
                   <span className="sr-only">Login with Meta</span>
                 </Button>
               </Field> */}
-              <FieldDescription className="text-center">
+              <FieldDescription className="text-center text-xs">
                 Không có tài khoản?{" "}
-                <Link to="/signup" className="text-blue-700">
+                <Link to="/signup" className="text-blue-600 font-medium hover:underline">
                   Đăng ký
                 </Link>
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="relative hidden bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-700 md:flex flex-col items-center justify-center p-8 text-white">
-            <div className="text-center space-y-4">
-              <div className="text-6xl mb-4">🎮</div>
-              <h2 className="text-2xl font-bold">Chào mừng trở lại!</h2>
-              <p className="text-blue-100 text-sm leading-relaxed">
+          <div className="relative hidden bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-700 md:flex flex-col items-center justify-center p-8 text-white overflow-hidden">
+            <div className="text-center space-y-4 z-10">
+              <div className="text-5xl mb-4">🎮</div>
+              <h2 className="text-xl font-bold">Chào mừng trở lại!</h2>
+              <p className="text-blue-100 text-xs leading-relaxed">
                 Khám phá thế giới tài khoản game đa dạng, uy tín và giá tốt nhất
                 tại ShopSam.
               </p>
-              <div className="flex justify-center gap-2 pt-4">
-                <span className="px-3 py-1 bg-white/20 rounded-full text-xs">
-                  🔒 Bảo mật
-                </span>
-                <span className="px-3 py-1 bg-white/20 rounded-full text-xs">
-                  ⚡ Nhanh chóng
-                </span>
-                <span className="px-3 py-1 bg-white/20 rounded-full text-xs">
-                  💯 Uy tín
-                </span>
+              <div className="flex flex-wrap justify-center gap-2 pt-4">
+                <span className="px-3 py-1 bg-white/20 rounded-full text-[10px]">🔒 Bảo mật</span>
+                <span className="px-3 py-1 bg-white/20 rounded-full text-[10px]">⚡ Nhanh chóng</span>
+                <span className="px-3 py-1 bg-white/20 rounded-full text-[10px]">💯 Uy tín</span>
               </div>
             </div>
-
-            {/* Decorative elements */}
-            <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
-            <div className="absolute bottom-10 right-10 w-32 h-32 bg-cyan-300/20 rounded-full blur-3xl" />
+            <div className="absolute top-10 left-10 w-24 h-24 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-10 right-10 w-40 h-40 bg-cyan-300/20 rounded-full blur-3xl" />
           </div>
         </CardContent>
-      </Card>
-      <FieldDescription className="px-6 text-center">
+      </GlassCard>
+      <FieldDescription className="px-6 text-center text-xs">
         Khi đăng nhập, bạn đồng ý với{" "}
-        <a className="text-blue-700" href="#">
+        <a className="text-blue-600 hover:underline" href="#">
           Điều khoản dịch vụ
         </a>{" "}
         và{" "}
-        <a className="text-blue-700" href="#">
+        <a className="text-blue-600 hover:underline" href="#">
           Chính sách quyền riêng tư
         </a>
         .

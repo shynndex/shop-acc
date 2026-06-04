@@ -14,16 +14,25 @@ const adminSchema = new mongoose.Schema(
     // ── Brute-force protection (ẩn khỏi API mặc định) ──────────────────────
     failedLoginAttempts: { type: Number, default: 0, select: false },
     lockoutUntil: { type: Date, default: null, select: false },
+
+    // ── Refresh Token Rotation ────────────────────────────────────────────
+    refreshToken: { type: String, default: null, select: false },
+    /** Tokens that have been rotated — if reused, indicates theft */
+    refreshTokenUsed: [{ type: String, select: false }],
+
+    // ── 2FA / TOTP ────────────────────────────────────────────────────────
+    totpSecret: { type: String, default: null, select: false },
+    totpEnabled: { type: Boolean, default: false },
+    totpVerifiedAt: { type: Date, default: null },
   },
   {
     timestamps: true,
   },
 );
 
-adminSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+adminSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 adminSchema.methods.matchPassword = async function (entered) {

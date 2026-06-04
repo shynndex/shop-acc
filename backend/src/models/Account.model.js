@@ -94,7 +94,7 @@ const accountSchema = new mongoose.Schema(
 );
 
 // ─── Pre-save hook: sync status ↔ booleans ─────────────────────────────────
-accountSchema.pre("save", function (next) {
+accountSchema.pre("save", function () {
   if (this.isModified("status")) {
     // status is source of truth → sync booleans
     switch (this.status) {
@@ -126,7 +126,6 @@ accountSchema.pre("save", function (next) {
     else if (!this.isActive) this.status = "inactive";
     else this.status = "available";
   }
-  next();
 });
 
 // ─── Statics: atomic reserve/release helpers ───────────────────────────────

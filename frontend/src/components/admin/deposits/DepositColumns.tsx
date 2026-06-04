@@ -12,10 +12,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Check, Edit, Eye, MoreHorizontal, X } from "lucide-react";
 
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-500",
-  PAID: "bg-green-500",
-  FAILED: "bg-red-500",
-  CANCELLED: "bg-gray-500",
+  PENDING: "bg-yellow-500 dark:bg-yellow-600",
+  PAID: "bg-green-500 dark:bg-green-600",
+  FAILED: "bg-red-500 dark:bg-red-600",
+  CANCELLED: "bg-gray-500 dark:bg-gray-600",
 };
 
 export const DepositColumns: ColumnDef<Deposit>[] = [

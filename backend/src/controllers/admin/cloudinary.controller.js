@@ -1,24 +1,50 @@
 import cloudinary from "../../libs/cloudinary.config.js";
 import { asyncHandler, AppError } from "../../middlewares/errorHandler.js";
+import { generateId } from "../../utils/generateId.js";
 
-// Upload ảnh (middleware 'upload' đã handle mọi thứ)
+// Upload ảnh với memory storage + magic bytes validation trước khi lên Cloudinary
 export const uploadImage = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new AppError("Vui lòng chọn file ảnh", 400);
   }
 
-  // Cloudinary đã upload xong, trả về result trong req.file
-  const { secure_url, public_id, format, bytes, original_name } = req.file;
+  // ── Upload buffer lên Cloudinary ─────────────────────────────────
+  const date = new Date().toISOString().split("T")[0];
+  const fileName = `${generateId()}`;
 
-  res.json({
+  const result = await new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: `shop_acc/accounts/${date}`,
+        public_id: fileName,
+        allowed_formats: ["jpg", "png", "jpeg", "webp", "gif"],
+        transformation: [
+          { width: 1200, height: 1200, crop: "limit" },
+          { quality: "auto:good" },
+          { fetch_format: "auto" },
+        ],
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      },
+    );
+    // Stream the buffer to Cloudinary
+    uploadStream.end(req.file.buffer);
+  });
+
+  // ── Phân loại định dạng ảnh về chuẩn (jpeg → jpg) ───────────────
+  const format = result.format === "jpeg" ? "jpg" : result.format;
+
+  res.status(201).json({
     success: true,
     message: "Upload thành công",
     data: {
-      secure_url, // URL HTTPS để dùng ngay
-      public_id, // ID để xóa sau này
-      format, // jpg/png/webp
-      size: bytes, // Kích thước file
-      original_name,
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+      format,
+      size: result.bytes,
+      original_name: req.file.originalname,
     },
   });
 });

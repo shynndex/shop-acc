@@ -22,11 +22,11 @@ const FilterBar = ({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:p-4",
+        "flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:p-4 transition-all duration-200",
         className,
       )}
     >
-      <div className="flex w-full flex-col gap-3 sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex w-full flex-col gap-3 sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center transition-all duration-200">
         {children}
       </div>
       {showReset && onReset && (

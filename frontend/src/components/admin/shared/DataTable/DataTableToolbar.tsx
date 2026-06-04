@@ -22,8 +22,8 @@ const DataTableToolbar = <TData,>({
 }: DataTableToolbarProps<TData>) => {
   const isFiltered = table.getState().columnFilters.length > 0;
   return (
-    <div className={cn("flex items-center justify-between ", className)}>
-      <div className="flex flex-1 items-center gap-2">
+    <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
         {searchKey && (
           <Input
             placeholder={searchPlaceholder}
@@ -33,16 +33,20 @@ const DataTableToolbar = <TData,>({
             onChange={(event) =>
               table.getColumn(searchKey)?.setFilterValue(event.target.value)
             }
-            className="h-8 w-[150px] lg:w-[250px]"
+            className="h-8 w-full sm:w-[150px] lg:w-[250px]"
           />
         )}
-        {isFiltered && (
-          <Button variant={"ghost"} onClick={() => table.resetColumnFilters()}>
-            Reset
-            <X className="ml-2 size-4" />
-          </Button>
+        {(isFiltered || actions) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {isFiltered && (
+              <Button variant={"ghost"} onClick={() => table.resetColumnFilters()} className="whitespace-nowrap">
+                Reset
+                <X className="ml-2 size-4" />
+              </Button>
+            )}
+            {actions}
+          </div>
         )}
-        {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     </div>
   );

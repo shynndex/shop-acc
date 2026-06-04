@@ -67,10 +67,20 @@ export function sanitizeInput(req, res, next) {
     req.body = sanitizeValue(req.body);
   }
   if (req.query && typeof req.query === "object") {
-    req.query = sanitizeValue(req.query);
+    // req.query có thể là getter-only (Express 5+), dùng Object.assign
+    const sanitized = sanitizeValue(req.query);
+    for (const key of Object.keys(req.query)) {
+      delete req.query[key];
+    }
+    Object.assign(req.query, sanitized);
   }
   if (req.params && typeof req.params === "object") {
-    req.params = sanitizeValue(req.params);
+    // req.params cũng có thể là getter-only
+    const sanitized = sanitizeValue(req.params);
+    for (const key of Object.keys(req.params)) {
+      delete req.params[key];
+    }
+    Object.assign(req.params, sanitized);
   }
   next();
 }

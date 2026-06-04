@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
+import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -18,32 +20,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { GAME_CATEGORIES } from "@/config/categories";
 import { accountService } from "@/services/client/accountService";
 import type { Account } from "@/types";
-import type { FilterOptions } from "@/types/client/services";
 import {
-  Filter,
   FilterX,
-  GitCompareArrows,
   PackageX,
   Search,
   Star,
   Tag,
+  Sparkles,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { useCompareStore } from "@/stores/useCompareStore";
 
 const ShopPage = () => {
   const navigate = useNavigate();
@@ -55,17 +45,11 @@ const ShopPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [hasError, setHasError] = useState(false);
-  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const compareStore = useCompareStore();
 
   // State cho Pagination & Filter
   const page = parseInt(searchParams.get("page") || "1");
   const minPrice = searchParams.get("minPrice");
   const maxPrice = searchParams.get("maxPrice");
-  const rankFilter = searchParams.get("rank") || "";
-  const minSkins = searchParams.get("minSkins") || "";
-  const minHeroes = searchParams.get("minHeroes") || "";
   const searchQuery = searchParams.get("q") || "";
   const sortBy = searchParams.get("sortBy") || "newest";
 
@@ -81,7 +65,6 @@ const ShopPage = () => {
 
     if (!categorySlug) return params;
 
-    // Trường hợp 1: categorySlug khớp với gameSlug (VD: /tai-khoan/lien-quan)
     const matchedGame = GAME_CATEGORIES.find(
       (g) => g.gameSlug === categorySlug,
     );
@@ -101,7 +84,6 @@ const ShopPage = () => {
       return params;
     }
 
-    // Trường hợp 2: categorySlug khớp với category.slug
     for (const game of GAME_CATEGORIES) {
       const found = game.categories.find((c) => c.slug === categorySlug);
       if (found) {
@@ -121,18 +103,6 @@ const ShopPage = () => {
 
   const { game: filterGame, type: filterType, categoryInfo } = filterParams;
 
-  // Fetch filter options when game changes
-  useEffect(() => {
-    if (filterGame) {
-      accountService
-        .getFilterOptions(filterGame)
-        .then(setFilterOptions)
-        .catch(() => {});
-    } else {
-      setFilterOptions(null);
-    }
-  }, [filterGame]);
-
   // Fetch data khi params thay đổi
   useEffect(() => {
     const fetchAccount = async () => {
@@ -147,9 +117,6 @@ const ShopPage = () => {
           type: filterType,
           minPrice: minPrice ? parseInt(minPrice) : undefined,
           maxPrice: maxPrice ? parseInt(maxPrice) : undefined,
-          rank: rankFilter || undefined,
-          minSkins: minSkins ? parseInt(minSkins) : undefined,
-          minHeroes: minHeroes ? parseInt(minHeroes) : undefined,
           search: searchQuery || undefined,
           sortBy: sortBy as "price_asc" | "price_desc" | "newest" | undefined,
         });
@@ -167,7 +134,7 @@ const ShopPage = () => {
       }
     };
     fetchAccount();
-  }, [filterGame, filterType, page, minPrice, maxPrice, rankFilter, minSkins, minHeroes, searchQuery, sortBy]);
+  }, [filterGame, filterType, page, minPrice, maxPrice, searchQuery, sortBy]);
 
   const updateFilter = (key: string, value: string | null) => {
     const newParams = new URLSearchParams(searchParams);
@@ -198,149 +165,28 @@ const ShopPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const hasActiveFilters = minPrice || maxPrice || rankFilter || minSkins || minHeroes || searchQuery || sortBy !== "newest";
+  const hasActiveFilters = minPrice || maxPrice || searchQuery || sortBy !== "newest";
 
-  // ─── Filter Panel Component ────────────────────────────────────────────
+  const priceRanges = [
+    { value: "all", label: "Tất cả" },
+    { value: "0-50000", label: "Dưới 50.000đ" },
+    { value: "50000-100000", label: "50K - 100K" },
+    { value: "100000-300000", label: "100K - 300K" },
+    { value: "300000-500000", label: "300K - 500K" },
+    { value: "500000-9999999", label: "Trên 500K" },
+  ];
 
-  const FilterPanel = ({ vertical = false }: { vertical?: boolean }) => (
-    <div className={vertical ? "space-y-6" : "flex flex-wrap items-end gap-4"}>
-      {/* Price Filter */}
-      <div className={vertical ? "" : "min-w-[160px]"}>
-        <label className="block text-sm font-medium mb-2">Khoảng giá</label>
-        <Select
-          value={
-            minPrice || maxPrice
-              ? `${minPrice || 0}-${maxPrice || 9999999}`
-              : "all"
-          }
-          onValueChange={(v) => {
-            if (v === "all") {
-              updateFilter("minPrice", null);
-              updateFilter("maxPrice", null);
-            } else {
-              const [min, max] = v.split("-");
-              updateFilter("minPrice", min);
-              updateFilter("maxPrice", max);
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Tất cả" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="0-50000">Dưới 50.000đ</SelectItem>
-            <SelectItem value="50000-100000">50.000đ - 100.000đ</SelectItem>
-            <SelectItem value="100000-300000">100.000đ - 300.000đ</SelectItem>
-            <SelectItem value="300000-500000">300.000đ - 500.000đ</SelectItem>
-            <SelectItem value="500000-9999999">Trên 500.000đ</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Rank Filter */}
-      {filterOptions?.ranks && filterOptions.ranks.length > 0 && (
-        <div className={vertical ? "" : "min-w-[160px]"}>
-          <label className="block text-sm font-medium mb-2">Rank</label>
-          <Select
-            value={rankFilter || "all"}
-            onValueChange={(v) => updateFilter("rank", v === "all" ? null : v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Tất cả rank" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả rank</SelectItem>
-              {filterOptions.ranks.map((r) => (
-                <SelectItem key={r} value={r}>{r}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Skin Count Filter */}
-      {filterOptions?.skinRange && (
-        <div className={vertical ? "" : "min-w-[160px]"}>
-          <label className="block text-sm font-medium mb-2">
-            Skin {minSkins ? `≥ ${minSkins}` : ""}
-          </label>
-          <Select
-            value={minSkins || "all"}
-            onValueChange={(v) => updateFilter("minSkins", v === "all" ? null : v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Tất cả" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              {[1, 5, 10, 20, 50, 100, 200].map(
-                (n) =>
-                  n <= (filterOptions.skinRange?.max || 999) && (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}+
-                    </SelectItem>
-                  ),
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Hero Count Filter */}
-      {filterOptions?.heroRange && (
-        <div className={vertical ? "" : "min-w-[160px]"}>
-          <label className="block text-sm font-medium mb-2">
-            Tướng {minHeroes ? `≥ ${minHeroes}` : ""}
-          </label>
-          <Select
-            value={minHeroes || "all"}
-            onValueChange={(v) => updateFilter("minHeroes", v === "all" ? null : v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Tất cả" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              {[10, 30, 50, 80, 100, 120].map(
-                (n) =>
-                  n <= (filterOptions.heroRange?.max || 999) && (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}+
-                    </SelectItem>
-                  ),
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Sort */}
-      <div className={vertical ? "" : "min-w-[140px]"}>
-        <label className="block text-sm font-medium mb-2">Sắp xếp</label>
-        <Select
-          value={sortBy}
-          onValueChange={(v) => updateFilter("sortBy", v === "newest" ? null : v)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Mới nhất" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Mới nhất</SelectItem>
-            <SelectItem value="price_asc">Giá: Thấp → Cao</SelectItem>
-            <SelectItem value="price_desc">Giá: Cao → Thấp</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
+  const currentPriceValue =
+    minPrice || maxPrice
+      ? `${minPrice || 0}-${maxPrice || 9999999}`
+      : "all";
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 min-h-[60vh] flex items-center justify-center">
+      <div className="py-8 min-h-[60vh] flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full size-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
-          <p className="text-muted-foreground text-lg animate-pulse">
+          <div className="animate-spin rounded-full size-16 border-4 border-blue-200 border-t-blue-600 mx-auto shadow-glow-sm"></div>
+          <p className="text-muted-foreground text-base animate-pulse">
             Đang tải thông tin...
           </p>
         </div>
@@ -350,19 +196,17 @@ const ShopPage = () => {
 
   if (hasError) {
     return (
-      <div className="container mx-auto px-4 py-8 min-h-[60vh] flex items-center justify-center">
+      <div className="py-8 min-h-[60vh] flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
           <div className="text-6xl">😕</div>
-          <h2 className="text-2xl font-bold text-red-600">Có lỗi xảy ra</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold text-destructive">Có lỗi xảy ra</h2>
+          <p className="text-muted-foreground text-sm">
             Không thể tải danh sách tài khoản. Vui lòng thử lại sau.
           </p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
+          <GradientButton onClick={() => window.location.reload()} className="h-11">
+            <Sparkles className="size-4 mr-1" />
             Thử lại
-          </Button>
+          </GradientButton>
         </div>
       </div>
     );
@@ -370,53 +214,55 @@ const ShopPage = () => {
 
   if (accounts.length === 0 && !loading && !hasError) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="py-8">
         <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-center space-y-6 max-w-lg">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 mb-4">
-              <PackageX className="h-12 w-12 text-gray-400" />
+          <GlassCard className="max-w-lg p-8 text-center">
+            <div className="space-y-5">
+              <div className="inline-flex items-center justify-center size-20 rounded-full bg-muted/30 mx-auto">
+                <PackageX className="size-10 text-muted-foreground/50" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold">
+                  Chưa có tài khoản nào
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {categoryInfo
+                    ? `Danh mục "${categoryInfo.name}" hiện chưa có tài khoản nào.`
+                    : "Hiện chưa có tài khoản nào trong kho."}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <Button
+                  onClick={() => navigate("/")}
+                  variant="outline"
+                  className="gap-1.5"
+                >
+                  ← Về trang chủ
+                </Button>
+                <Button onClick={handleReset} variant="secondary">
+                  Đặt lại bộ lọc
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold text-gray-800">
-                Chưa có tài khoản nào
-              </h2>
-              <p className="text-muted-foreground text-lg">
-                {categoryInfo
-                  ? `Danh mục "${categoryInfo.name}" hiện chưa có tài khoản nào.`
-                  : "Hiện chưa có tài khoản nào trong kho."}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-              <Button
-                onClick={() => navigate("/")}
-                variant="outline"
-                className="border-2"
-              >
-                ← Về trang chủ
-              </Button>
-              <Button onClick={handleReset} variant="secondary">
-                Đặt lại bộ lọc
-              </Button>
-            </div>
-          </div>
+          </GlassCard>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="py-6 sm:py-8 space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
-          {categoryInfo ? categoryInfo.name : "TẤT CẢ TÀI KHOẢN"}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold">
+          {categoryInfo ? categoryInfo.name : "Tất cả tài khoản"}
         </h1>
-        <p className="text-muted-foreground">
-          Tổng cộng: <strong className="text-foreground">{totalItems}</strong> sản phẩm
+        <p className="text-sm text-muted-foreground mt-1">
+          <strong className="text-foreground font-semibold">{totalItems}</strong> sản phẩm
           {hasActiveFilters && (
             <button
               onClick={handleReset}
-              className="ml-3 text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
+              className="ml-3 text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
             >
               <FilterX className="size-3" />
               Xoá bộ lọc
@@ -425,157 +271,96 @@ const ShopPage = () => {
         </p>
       </div>
 
-      {/* Filters - Desktop */}
-      <div className="hidden lg:block bg-white p-6 rounded-lg shadow-sm border mb-8">
-        <div className="flex items-end gap-4">
-          <FilterPanel />
-          {/* Search - Desktop */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium mb-2">Tìm kiếm</label>
-            <form onSubmit={handleSearch} className="flex gap-2">
+      {/* ─── Filters Bar ─── */}
+      <div className="glass-strong rounded-xl border-border/50 transition-all duration-200">
+        <div className="p-3 sm:p-4 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
+          {/* Search */}
+          <form onSubmit={handleSearch} className="flex gap-2 sm:flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Tên tài khoản, mã code..."
+                placeholder="Tìm tài khoản, mã code..."
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
-                className="flex-1"
+                className="pl-9 h-10 bg-muted/30 border-border/50 focus:border-blue-400 transition-all duration-200"
               />
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                <Search className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
-          {/* Reset Button - Desktop */}
-          <div>
-            <label className="block text-sm font-medium mb-2">&nbsp;</label>
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="border-red-300 text-red-600 hover:bg-red-50"
-              size="icon"
-            >
-              <FilterX className="size-4" />
+            </div>
+            <Button type="submit" size="icon" className="size-10 bg-gradient-brand text-white hover:bg-gradient-brand-hover shrink-0">
+              <Search className="size-4" />
             </Button>
+          </form>
+
+          {/* Filters row: Price + Sort + Reset */}
+          <div className="flex items-center gap-2">
+            {/* Price Range */}
+            <Select
+              value={currentPriceValue}
+              onValueChange={(v) => {
+                if (v === "all") {
+                  updateFilter("minPrice", null);
+                  updateFilter("maxPrice", null);
+                } else {
+                  const [min, max] = v.split("-");
+                  updateFilter("minPrice", min);
+                  updateFilter("maxPrice", max);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[140px] h-10">
+                <SelectValue placeholder="Giá" />
+              </SelectTrigger>
+              <SelectContent>
+                {priceRanges.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Sort */}
+            <Select
+              value={sortBy}
+              onValueChange={(v) => updateFilter("sortBy", v === "newest" ? null : v)}
+            >
+              <SelectTrigger className="w-full sm:w-[140px] h-10">
+                <SelectValue placeholder="Sắp xếp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Mới nhất</SelectItem>
+                <SelectItem value="price_asc">Giá thấp → cao</SelectItem>
+                <SelectItem value="price_desc">Giá cao → thấp</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Reset */}
+            {hasActiveFilters && (
+              <Button
+                onClick={handleReset}
+                variant="ghost"
+                size="icon"
+                className="size-10 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
+              >
+                <FilterX className="size-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Filters - Mobile */}
-      <div className="lg:hidden mb-4 flex items-center gap-2">
-        <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Filter className="size-4" />
-              Bộ lọc
-              {hasActiveFilters && (
-                <Badge className="ml-1 bg-blue-600">{totalItems}</Badge>
-              )}
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] sm:w-[350px] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Bộ lọc</SheetTitle>
-              <SheetDescription>Tìm kiếm tài khoản phù hợp</SheetDescription>
-            </SheetHeader>
-            <div className="mt-6 space-y-5">
-              {/* Rank */}
-              {filterOptions?.ranks && filterOptions.ranks.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Rank</label>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge
-                      variant={!rankFilter ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => updateFilter("rank", null)}
-                    >
-                      Tất cả
-                    </Badge>
-                    {filterOptions.ranks.map((r) => (
-                      <Badge
-                        key={r}
-                        variant={rankFilter === r ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => updateFilter("rank", r)}
-                      >
-                        {r}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Search */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Tìm kiếm</label>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    updateFilter("q", localSearch.trim() || null);
-                    setMobileFilterOpen(false);
-                  }}
-                >
-                  <Input
-                    placeholder="Tên, mã code..."
-                    value={localSearch}
-                    onChange={(e) => setLocalSearch(e.target.value)}
-                  />
-                </form>
-              </div>
-
-              <Separator />
-
-              {/* Sort */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Sắp xếp</label>
-                <Select
-                  value={sortBy}
-                  onValueChange={(v) => updateFilter("sortBy", v === "newest" ? null : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Mới nhất</SelectItem>
-                    <SelectItem value="price_asc">Giá: Thấp → Cao</SelectItem>
-                    <SelectItem value="price_desc">Giá: Cao → Thấp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                className="w-full"
-                variant="destructive"
-                onClick={() => { handleReset(); setMobileFilterOpen(false); }}
-              >
-                <FilterX className="size-4 mr-2" />
-                Xoá tất cả bộ lọc
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-          <Input
-            type="text"
-            placeholder="Tìm kiếm..."
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            className="flex-1"
-          />
-          <Button type="submit" className="bg-blue-600" size="icon">
-            <Search className="h-4 w-4" />
-          </Button>
-        </form>
-      </div>
-
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {accounts.map((acc) => (
-          <Card
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+        {accounts.map((acc, idx) => (
+          <div
             key={acc.id}
-            className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-blue-400 overflow-hidden"
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+            style={{ animationDelay: `${idx * 60}ms` }}
           >
-            <div className="relative aspect-video overflow-hidden bg-gray-100">
+          <Card
+            className="group h-full overflow-hidden border border-border/50 bg-background/80 backdrop-blur-sm hover:border-blue-400 hover:shadow-lg transition-all duration-300 cursor-pointer"
+            onClick={() => navigate(`/tai-khoan/${categorySlug || acc.game}/${acc.id}`)}
+          >
+            {/* Image area */}
+            <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
               {acc.images?.[0] ? (
                 <img
                   src={acc.images[0]}
@@ -583,174 +368,151 @@ const ShopPage = () => {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-6xl">
-                  🎮
+                <div className="flex items-center justify-center h-full">
+                  <span className="text-4xl">🎮</span>
                 </div>
               )}
               {acc.attributes?.discount && (
-                <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600">
+                <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600 border-0">
                   -{acc.attributes.discount}%
                 </Badge>
               )}
-              {/* Rating badge */}
               {acc.rating && acc.rating.count > 0 && (
-                <Badge className="absolute top-2 right-2 bg-yellow-500 hover:bg-yellow-600 flex items-center gap-1">
-                  <Star className="size-3 fill-white" />
+                <Badge className="absolute top-2 right-2 bg-yellow-500 hover:bg-yellow-600 border-0 flex items-center gap-0.5">
+                  <Star className="size-2.5 fill-white" />
                   {acc.rating.avg}
                 </Badge>
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <CardContent className="p-4 space-y-3">
-              <h3 className="font-bold text-sm line-clamp-2 min-h-[40px] text-gray-800">
+
+            <CardContent className="p-3 space-y-2.5">
+              <h3 className="font-semibold text-xs sm:text-sm line-clamp-2 min-h-[32px] group-hover:text-blue-600 transition-colors">
                 {acc.title}
               </h3>
 
               {acc.attributes?.code && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded w-fit">
-                  <Tag className="size-3" />
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/30 px-2 py-1 rounded w-fit">
+                  <Tag className="size-2.5" />
                   <span className="font-mono">{acc.attributes.code}</span>
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {acc.type && (
-                  <Badge
-                    variant={"secondary"}
-                    className="text-xs"
-                  >
-                    {acc.type.toUpperCase()}
+                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-auto">
+                    {acc.type}
                   </Badge>
                 )}
                 {!acc.isSold && (
-                  <Badge className="bg-green-100 text-green-700 text-xs">
+                  <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[9px] px-1.5 py-0 h-auto border-0">
                     Còn hàng
                   </Badge>
                 )}
-                {acc.rating && acc.rating.count > 0 && (
-                  <Badge variant="outline" className="text-xs text-yellow-700 border-yellow-300">
-                    {acc.rating.avg}★ ({acc.rating.count})
-                  </Badge>
-                )}
               </div>
 
-              <div className="space-y-1">
-                {acc.attributes?.originalPrice && (
-                  <p className="text-sm text-muted-foreground line-through">
-                    {acc.attributes.originalPrice.toLocaleString("vi-VN")} đ
+              <div className="flex items-end justify-between">
+                <div>
+                  {acc.attributes?.originalPrice && (
+                    <p className="text-[10px] text-muted-foreground line-through">
+                      {acc.attributes.originalPrice.toLocaleString("vi-VN")}đ
+                    </p>
+                  )}
+                  <p className="text-sm sm:text-base font-bold text-red-600">
+                    {acc.price.toLocaleString("vi-VN")}đ
                   </p>
+                </div>
+                {acc.rating && acc.rating.count > 0 && (
+                  <span className="text-[10px] text-yellow-600 flex items-center gap-0.5">
+                    <Star className="size-2.5 fill-yellow-400 text-yellow-400" />
+                    {acc.rating.avg}
+                  </span>
                 )}
-                <p className="text-xl font-bold text-red-600">
-                  {acc.price.toLocaleString("vi-VN")} đ
-                </p>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <Button
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  onClick={() =>
-                    navigate(`/tai-khoan/${categorySlug || acc.game}/${acc.id}`)
-                  }
+              <div className="flex items-center gap-2 pt-1.5 border-t border-border/30">
+                <GradientButton
+                  size="sm"
+                  className="flex-1 h-8 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/tai-khoan/${categorySlug || acc.game}/${acc.id}`);
+                  }}
                 >
                   Mua ngay
-                </Button>
-
-                <button
-                  onClick={() => {
-                    const isIn = compareStore.has(acc.id);
-                    if (isIn) {
-                      compareStore.remove(acc.id);
-                    } else {
-                      if (compareStore.ids.length >= 5) {
-                        toast.error("Chỉ được so sánh tối đa 5 sản phẩm");
-                        return;
-                      }
-                      compareStore.add(acc.id);
-                      toast.success("Đã thêm vào danh sách so sánh");
-                    }
-                  }}
-                  className={`p-2 rounded-lg border-2 transition-all duration-200 ${
-                    compareStore.has(acc.id)
-                      ? "border-blue-500 bg-blue-50 text-blue-600"
-                      : "border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/50"
-                  }`}
-                  title={
-                    compareStore.has(acc.id)
-                      ? "Bỏ khỏi so sánh"
-                      : "Thêm vào so sánh"
-                  }
-                >
-                  <GitCompareArrows
-                    className={`size-4 transition-transform duration-200 ${
-                      compareStore.has(acc.id) ? "scale-110" : ""
-                    }`}
-                  />
-                </button>
+                </GradientButton>
               </div>
             </CardContent>
           </Card>
+          </div>
         ))}
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <Pagination className="mt-10">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page > 1) handlePageChange(page - 1);
-                }}
-                className={page === 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
+        <div className="flex justify-center pt-4">
+          <Pagination>
+            <PaginationContent className="gap-1.5">
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (page > 1) handlePageChange(page - 1);
+                  }}
+                  className={"rounded-lg border border-border/50 hover:border-blue-300 transition-all duration-200 " + (page === 1 ? "pointer-events-none opacity-40" : "")}
+                />
+              </PaginationItem>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-              (pageNum) => {
-                const shouldShow =
-                  pageNum === 1 ||
-                  pageNum === totalPages ||
-                  (pageNum >= page - 1 && pageNum <= page + 1);
-                if (shouldShow) {
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handlePageChange(pageNum);
-                        }}
-                        isActive={page === pageNum}
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                } else if (pageNum === page - 2 || pageNum === page + 2) {
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  );
-                }
-                return null;
-              },
-            )}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page < totalPages) handlePageChange(page + 1);
-                }}
-                className={
-                  page === totalPages ? "pointer-events-none opacity-50" : ""
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (pageNum) => {
+                  const shouldShow =
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    (pageNum >= page - 1 && pageNum <= page + 1);
+                  if (shouldShow) {
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(pageNum);
+                          }}
+                          isActive={page === pageNum}
+                          className={`rounded-lg border transition-all duration-200 ${
+                            page === pageNum
+                              ? "bg-gradient-brand text-white border-0 shadow-glow-sm"
+                              : "border-border/50 hover:border-blue-300 hover:text-blue-600"
+                          }`}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  } else if (pageNum === page - 2 || pageNum === page + 2) {
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationEllipsis className="text-muted-foreground" />
+                      </PaginationItem>
+                    );
+                  }
+                  return null;
+                },
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (page < totalPages) handlePageChange(page + 1);
+                  }}
+                  className={"rounded-lg border border-border/50 hover:border-blue-300 transition-all duration-200 " + (page === totalPages ? "pointer-events-none opacity-40" : "")}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       )}
     </div>
   );

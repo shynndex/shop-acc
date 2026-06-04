@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { ActivityItem } from "@/types/admin/analytics.type";
-import { formatVND } from "@/lib/utils";
+import { cn, formatVND } from "@/lib/utils";
 
 interface RecentActivityTableProps {
   activities: ActivityItem[];
@@ -49,46 +49,48 @@ export function RecentActivityTable({ activities, loading }: RecentActivityTable
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Thời gian</TableHead>
-          <TableHead>Hoạt động</TableHead>
-          <TableHead>Người dùng</TableHead>
-          <TableHead className="text-right">Số tiền</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {activities.map((activity) => (
-          <TableRow key={activity.id}>
-            <TableCell className="text-sm text-muted-foreground">
-              {new Date(activity.createdAt).toLocaleString("vi-VN", {
-                day: "2-digit",
-                month: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className={typeColors[activity.type]}>
-                  {typeLabels[activity.type]}
-                </Badge>
-                <span className="text-sm">{activity.description}</span>
-              </div>
-            </TableCell>
-            <TableCell className="text-sm">
-              {activity.user?.username || "N/A"}
-              {activity.user?.email && (
-                <div className="text-xs text-muted-foreground">{activity.user.email}</div>
-              )}
-            </TableCell>
-            <TableCell className="text-right font-medium">
-              {activity.amount ? formatVND(activity.amount) + "đ" : "-"}
-            </TableCell>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="whitespace-nowrap">Thời gian</TableHead>
+            <TableHead>Hoạt động</TableHead>
+            <TableHead className="hidden sm:table-cell">Người dùng</TableHead>
+            <TableHead className="text-right whitespace-nowrap">Số tiền</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {activities.map((activity) => (
+            <TableRow key={activity.id}>
+              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                {new Date(activity.createdAt).toLocaleString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </TableCell>
+              <TableCell className="min-w-0 max-w-[120px] sm:max-w-none">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className={cn(typeColors[activity.type], "shrink-0")}>
+                    {typeLabels[activity.type]}
+                  </Badge>
+                  <span className="text-sm truncate">{activity.description}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-sm hidden sm:table-cell">
+                {activity.user?.username || "N/A"}
+                {activity.user?.email && (
+                  <div className="text-xs text-muted-foreground truncate max-w-[120px]">{activity.user.email}</div>
+                )}
+              </TableCell>
+              <TableCell className="text-right font-medium whitespace-nowrap">
+                {activity.amount ? formatVND(activity.amount) + "đ" : "-"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

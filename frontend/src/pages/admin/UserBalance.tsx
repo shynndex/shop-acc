@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { PageHeader, SearchBar, DataTable } from "@/components/admin/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -17,8 +17,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
-import { useAdminUserBalanceStore } from "@/stores/useAdminUserBalanceStore";
+import { EmptyState, Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
+import {
+  useSearchUserQuery,
+  useBalanceLogQuery,
+  useAdjustBalance,
+} from "@/hooks/queries/useAdminQueries";
+import { exportTableToCsv } from "@/hooks/useExportCsv";
 import { cn, formatVND, formatDate } from "@/lib/utils";
 import type { BalanceLogEntry, SearchUserItem } from "@/types/admin/userBalance.type";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -26,7 +31,6 @@ import {
   Search,
   User,
   Wallet,
-  ArrowUpDown,
   RefreshCw,
   AlertCircle,
   Plus,
@@ -36,13 +40,26 @@ import {
   X,
   Loader2,
   Users,
+  Download,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/hooks/queries/useAdminQueries";
+
+// ── CSV columns ─────────────────────────────────────────────────
+const CSV_COLUMNS = [
+  { key: "timestamp", label: "Thời gian" },
+  { key: "type", label: "Loại" },
+  { key: "amount", label: "Số tiền" },
+  { key: "balanceBefore", label: "Số dư trước" },
+  { key: "balanceAfter", label: "Số dư sau" },
+  { key: "note", label: "Ghi chú" },
+];
 
 // ── Type Badges ─────────────────────────────────────────────────
 const typeColors: Record<string, string> = {
-  credit: "bg-green-500/10 text-green-600 border-green-200",
+  credit: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800",
   debit: "bg-red-500/10 text-red-600 border-red-200",
-  admin_adjust: "bg-blue-500/10 text-blue-600 border-blue-200",
+  admin_adjust: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
 };
 
 const typeLabels: Record<string, string> = {
@@ -116,21 +133,28 @@ const columns: ColumnDef<BalanceLogEntry>[] = [
 function AdjustBalanceDialog({
   open,
   onOpenChange,
+  userId,
   username,
   currentBalance,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  userId: string;
   username: string;
   currentBalance: number;
 }) {
-  const { adjustBalance, adjusting, adjustResult, adjustMessage, clearAdjustResult, error } =
-    useAdminUserBalanceStore();
-  const { userId } = useAdminUserBalanceStore();
+  const qc = useQueryClient();
+  const { mutateAsync: adjustBalance, isPending: adjusting } = useAdjustBalance();
 
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [isCredit, setIsCredit] = useState(true);
+  const [success, setSuccess] = useState<{
+    previousBalance: number;
+    adjustment: number;
+    newBalance: number;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -138,9 +162,10 @@ function AdjustBalanceDialog({
       setAmount("");
       setReason("");
       setIsCredit(true);
-      clearAdjustResult();
+      setSuccess(null);
+      setError(null);
     }
-  }, [open, clearAdjustResult]);
+  }, [open]);
 
   const handleSubmit = useCallback(async () => {
     if (!userId) return;
@@ -148,16 +173,24 @@ function AdjustBalanceDialog({
     if (!parsedAmount || parsedAmount <= 0) return;
     const finalAmount = isCredit ? parsedAmount : -parsedAmount;
 
-    const success = await adjustBalance(userId, {
-      amount: finalAmount,
-      reason: reason.trim(),
-    });
-
-    if (success) {
+    try {
+      const data = await adjustBalance({
+        userId,
+        payload: { amount: finalAmount, reason: reason.trim() },
+      });
+      setSuccess({
+        previousBalance: data?.previousBalance || 0,
+        adjustment: data?.adjustment || 0,
+        newBalance: data?.newBalance || 0,
+      });
+      // Invalidate log query so it refreshes
+      qc.invalidateQueries({ queryKey: queryKeys.userBalance.log(userId) });
       // Close after brief delay to show success
       setTimeout(() => onOpenChange(false), 2000);
+    } catch (err: any) {
+      setError(err?.message || "Không thể điều chỉnh số dư");
     }
-  }, [userId, amount, isCredit, reason, adjustBalance, onOpenChange]);
+  }, [userId, amount, isCredit, reason, adjustBalance, onOpenChange, qc]);
 
   const parsedAmount = parseInt(amount.replace(/\D/g, ""), 10);
   const isValid = parsedAmount > 0 && reason.trim().length >= 5;
@@ -177,23 +210,23 @@ function AdjustBalanceDialog({
         </DialogHeader>
 
         {/* Success state */}
-        {adjustResult ? (
+        {success ? (
           <div className="py-6 text-center space-y-3">
             <CheckCircle className="size-12 text-green-500 mx-auto" />
-            <p className="font-semibold text-green-600">{adjustMessage}</p>
+            <p className="font-semibold text-green-600">Đã điều chỉnh số dư thành công</p>
             <div className="text-sm text-muted-foreground">
               <div>
-                Số dư cũ: <strong>{formatVND(adjustResult.previousBalance)}đ</strong>
+                Số dư cũ: <strong>{formatVND(success.previousBalance)}đ</strong>
               </div>
               <div>
                 Điều chỉnh:{" "}
-                <strong className={adjustResult.adjustment > 0 ? "text-green-600" : "text-red-600"}>
-                  {adjustResult.adjustment > 0 ? "+" : ""}
-                  {formatVND(adjustResult.adjustment)}đ
+                <strong className={success.adjustment > 0 ? "text-green-600" : "text-red-600"}>
+                  {success.adjustment > 0 ? "+" : ""}
+                  {formatVND(success.adjustment)}đ
                 </strong>
               </div>
               <div>
-                Số dư mới: <strong>{formatVND(adjustResult.newBalance)}đ</strong>
+                Số dư mới: <strong>{formatVND(success.newBalance)}đ</strong>
               </div>
             </div>
           </div>
@@ -289,7 +322,7 @@ function AdjustBalanceDialog({
         )}
 
         <DialogFooter className="gap-2">
-          {!adjustResult && (
+          {!success && (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Hủy
@@ -370,95 +403,104 @@ function UserSearchResults({
 
 // ── Main Page ───────────────────────────────────────────────────
 export default function UserBalancePage() {
-  const {
-    userId,
-    userInfo,
-    entries,
-    pagination,
-    adjusting,
-    searchingUser,
-    searchResults,
-    loading,
-    error,
-    searchUser,
-    selectUser,
-    fetchBalanceLog,
-    clearSearch,
-    clearUser,
-  } = useAdminUserBalanceStore();
+  const qc = useQueryClient();
 
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<{
+    username?: string;
+    displayName?: string;
+    email?: string;
+    currentBalance: number;
+  } | null>(null);
   const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [showAdjustDialog, setShowAdjustDialog] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [page, setPage] = useState(1);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchInput.trim()) {
-        searchUser(searchInput);
-        setShowSearchResults(true);
-      } else {
-        clearSearch();
-        setShowSearchResults(false);
-      }
+      setDebouncedSearch(searchInput.trim());
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, searchUser, clearSearch]);
+  }, [searchInput]);
 
-  // Fetch balance log when user is selected
+  // TanStack Query hooks
+  const {
+    data: searchResults,
+    isFetching: searchingUser,
+  } = useSearchUserQuery(debouncedSearch);
+
+  const {
+    data: balanceData,
+    isLoading: loading,
+    refetch: refetchLog,
+  } = useBalanceLogQuery(selectedUserId, {
+    page,
+    limit: 20,
+    ...(dateFrom ? { dateFrom } : {}),
+    ...(dateTo ? { dateTo } : {}),
+  });
+
+  // Update userInfo when balance data loads
   useEffect(() => {
-    if (userId) {
-      fetchBalanceLog(userId, {
-        page: 1,
-        limit: 20,
-        ...(dateFrom ? { dateFrom } : {}),
-        ...(dateTo ? { dateTo } : {}),
-      });
+    if (balanceData?.user) {
+      setUserInfo(balanceData.user);
     }
-  }, [userId, dateFrom, dateTo, fetchBalanceLog]);
+  }, [balanceData]);
+
+  const entries: BalanceLogEntry[] = balanceData?.entries || [];
+  const pagination = {
+    currentPage: balanceData?.currentPage || 1,
+    totalPages: balanceData?.totalPages || 1,
+    totalItems: balanceData?.totalItems || 0,
+  };
 
   const handleSelectUser = useCallback(
     (user: SearchUserItem) => {
-      selectUser(user._id);
+      setSelectedUserId(user._id);
+      setUserInfo({
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        currentBalance: user.currentBalance || 0,
+      });
       setShowSearchResults(false);
       setSearchInput(user.displayName || user.username);
+      setPage(1);
     },
-    [selectUser],
+    [],
   );
 
   const handleRefresh = useCallback(() => {
-    if (userId) {
-      fetchBalanceLog(userId, {
-        page: pagination.currentPage,
-        limit: 20,
-        ...(dateFrom ? { dateFrom } : {}),
-        ...(dateTo ? { dateTo } : {}),
-      });
+    if (selectedUserId) {
+      refetchLog();
+      qc.invalidateQueries({ queryKey: queryKeys.userBalance.log(selectedUserId) });
     }
-  }, [userId, pagination.currentPage, dateFrom, dateTo, fetchBalanceLog]);
+  }, [selectedUserId, refetchLog, qc]);
 
   const handlePageChange = useCallback(
-    (page: number) => {
-      if (userId) {
-        fetchBalanceLog(userId, {
-          page,
-          limit: 20,
-          ...(dateFrom ? { dateFrom } : {}),
-          ...(dateTo ? { dateTo } : {}),
-        });
-      }
-    },
-    [userId, dateFrom, dateTo, fetchBalanceLog],
+    (newPage: number) => setPage(newPage),
+    [],
   );
 
   const handleClearUser = useCallback(() => {
-    clearUser();
+    setSelectedUserId(null);
+    setUserInfo(null);
     setSearchInput("");
     setDateFrom("");
     setDateTo("");
-  }, [clearUser]);
+    setPage(1);
+  }, []);
+
+  const typeLabelsLookup: Record<string, string> = {
+    credit: "Nạp tiền",
+    debit: "Chi tiêu",
+    admin_adjust: "Admin điều chỉnh",
+  };
 
   // Close search results on outside click
   useEffect(() => {
@@ -472,16 +514,17 @@ export default function UserBalancePage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // Show search results when debouncedSearch changes
+  useEffect(() => {
+    if (debouncedSearch && debouncedSearch.length >= 2) {
+      setShowSearchResults(true);
+    } else {
+      setShowSearchResults(false);
+    }
+  }, [debouncedSearch]);
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      {/* Error */}
-      {error && !adjusting && (
-        <Alert variant="destructive">
-          <AlertCircle className="size-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       {/* Header */}
       <PageHeader
         title="Quản lý số dư người dùng"
@@ -489,9 +532,9 @@ export default function UserBalancePage() {
       />
 
       {/* User Search + Selected User Info */}
-      <Card>
+      <GlassCard>
         <CardContent className="pt-6">
-          {!userId ? (
+          {!selectedUserId ? (
             /* Search mode */
             <div className="space-y-2">
               <Label className="text-base font-medium">
@@ -508,20 +551,20 @@ export default function UserBalancePage() {
                   loading={searchingUser}
                   showClearButton={false}
                 />
-                {showSearchResults && (searchResults.length > 0 || searchingUser) && (
+                {showSearchResults && ((searchResults || []).length > 0 || searchingUser) ? (
                   <UserSearchResults
-                    results={searchResults}
+                    results={searchResults || []}
                     loading={searchingUser}
                     onSelect={handleSelectUser}
                   />
+                ) : null}
+                {!searchingUser && debouncedSearch && (searchResults || []).length === 0 && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <AlertCircle className="size-3" />
+                    Không tìm thấy người dùng "{debouncedSearch}"
+                  </p>
                 )}
               </div>
-              {searchInput && !searchingUser && searchResults.length === 0 && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <AlertCircle className="size-3" />
-                  Không tìm thấy người dùng "{searchInput}"
-                </p>
-              )}
             </div>
           ) : (
             /* Selected user info */
@@ -565,46 +608,72 @@ export default function UserBalancePage() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </GlassCard>
 
       {/* Balance Log Section (only when user selected) */}
-      {userId && (
+      {selectedUserId && (
         <div className="space-y-4">
           {/* Filters */}
-          <Card>
+          <GlassCard>
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                 <div className="flex-1" />
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground shrink-0">Từ</Label>
-                  <Input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="w-[140px] h-8 text-xs"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground shrink-0">Đến</Label>
-                  <Input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="w-[140px] h-8 text-xs"
-                  />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    exportTableToCsv(
+                      entries.map((e) => ({
+                        ...e,
+                        type: typeLabelsLookup[e.type || "admin_adjust"] || e.type,
+                        amount: `${(e.amount || 0) > 0 ? "+" : ""}${formatVND(Math.abs(e.amount || 0))}đ`,
+                        balanceBefore: `${formatVND(e.balanceBefore ?? 0)}đ`,
+                        balanceAfter: `${formatVND(e.balanceAfter ?? 0)}đ`,
+                        timestamp: formatDate(e.timestamp),
+                      })),
+                      CSV_COLUMNS,
+                      `balance_log_${selectedUserId}_${Date.now()}.csv`,
+                    )
+                  }
+                  disabled={entries.length === 0}
+                  className="w-full sm:w-auto"
+                >
+                  <Download className="size-4 mr-1" />
+                  Export CSV
+                </Button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground shrink-0">Từ</Label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                      className="flex-1 sm:w-[140px] h-8 text-xs"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground shrink-0">Đến</Label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                      className="flex-1 sm:w-[140px] h-8 text-xs"
+                    />
+                  </div>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleRefresh}
                   disabled={loading}
+                  className="w-full sm:w-auto"
                 >
                   <RefreshCw className={cn("size-4 mr-1", loading && "animate-spin")} />
                   Làm mới
                 </Button>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Table */}
           <DataTable
@@ -616,20 +685,18 @@ export default function UserBalancePage() {
             currentPage={pagination.currentPage}
             onPageChange={handlePageChange}
             emptyState={
-              <div className="py-12 text-center text-muted-foreground">
-                <History className="size-8 mx-auto mb-2 opacity-50" />
-                <p className="font-medium">Chưa có biến động số dư</p>
-                <p className="text-sm mt-1">
-                  Lịch sử giao dịch và điều chỉnh số dư sẽ hiển thị ở đây
-                </p>
-              </div>
+              <EmptyState
+                icon={History}
+                title="Chưa có biến động số dư"
+                description="Lịch sử giao dịch và điều chỉnh số dư sẽ hiển thị ở đây"
+              />
             }
           />
         </div>
       )}
 
       {/* No user selected state */}
-      {!userId && (
+      {!selectedUserId && (
         <div className="flex-1 flex items-center justify-center">
           <Empty>
             <EmptyHeader>
@@ -646,10 +713,11 @@ export default function UserBalancePage() {
       )}
 
       {/* Adjust Balance Dialog */}
-      {userId && (
+      {selectedUserId && userInfo && (
         <AdjustBalanceDialog
           open={showAdjustDialog}
           onOpenChange={setShowAdjustDialog}
+          userId={selectedUserId}
           username={userInfo?.displayName || userInfo?.username || ""}
           currentBalance={userInfo?.currentBalance || 0}
         />

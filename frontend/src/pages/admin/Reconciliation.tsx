@@ -1,18 +1,24 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { ReconKPICards } from "@/components/admin/reconciliation/ReconKPICards";
 import { ReconAlertsPanel } from "@/components/admin/reconciliation/ReconAlertsPanel";
-import { PageHeader, FilterBar, SearchBar, FilterDropdown } from "@/components/admin/shared";
-import { DataTable } from "@/components/admin/shared";
+import { PageHeader, FilterBar, SearchBar, FilterDropdown, DataTable } from "@/components/admin/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAdminReconciliationStore } from "@/stores/useAdminReconciliationStore";
+import {
+  useReconSummaryQuery,
+  useReconAlertsQuery,
+  useReconDepositsQuery,
+} from "@/hooks/queries/useAdminQueries";
+import { exportTableToCsv } from "@/hooks/useExportCsv";
 import { cn, formatVND, formatDate } from "@/lib/utils";
 import type { ReconDeposit } from "@/types/admin/reconciliation.type";
-import type { ColumnDef, CellContext } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
+import { SkeletonCard } from "@/components/ui/skeletons";
+import { EmptyState } from "@/components/ui/empty";
 import {
   RefreshCw,
   AlertCircle,
@@ -20,7 +26,9 @@ import {
   Banknote,
   CreditCard,
   Eye,
+  Download,
   MoreHorizontal,
+  SearchX,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,14 +36,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/hooks/queries/useAdminQueries";
+
+// ── CSV columns for deposits export ────────────────────────────
+const CSV_COLUMNS = [
+  { key: "user.username", label: "Người dùng" },
+  { key: "user.email", label: "Email" },
+  { key: "type", label: "Loại" },
+  { key: "status", label: "Trạng thái" },
+  { key: "amount", label: "Số tiền" },
+  { key: "declaredValue", label: "Giá trị khai báo" },
+  { key: "referenceCode", label: "Mã tham chiếu" },
+  { key: "createdAt", label: "Thời gian" },
+];
 
 // ── Status Badge ────────────────────────────────────────────────
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-500/10 text-amber-600 border-amber-200",
-  PAID: "bg-green-500/10 text-green-600 border-green-200",
+  PAID: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800",
   SUCCESS: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
   FAILED: "bg-red-500/10 text-red-600 border-red-200",
-  CANCELLED: "bg-gray-500/10 text-gray-600 border-gray-200",
+  CANCELLED: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700",
 };
 
 const statusLabels: Record<string, string> = {
@@ -161,20 +183,7 @@ const typeOptions = [
 
 // ── Page ────────────────────────────────────────────────────────
 export default function ReconciliationPage() {
-  const {
-    kpis,
-    depositMethods,
-    recentTransactions,
-    alerts,
-    alertCounts,
-    deposits,
-    pagination,
-    loading,
-    error,
-    fetchSummary,
-    fetchAlerts,
-    fetchDeposits,
-  } = useAdminReconciliationStore();
+  const qc = useQueryClient();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [filters, setFilters] = useState({
@@ -185,21 +194,33 @@ export default function ReconciliationPage() {
     limit: 15,
   });
 
-  // ── Initial fetch ──────────────────────────────────────────────
-  useEffect(() => {
-    fetchSummary();
-    fetchAlerts();
-  }, [fetchSummary, fetchAlerts]);
+  const { data: summaryData, isLoading: summaryLoading } = useReconSummaryQuery();
+  const { data: alertsData } = useReconAlertsQuery();
+  const { data: depositsData, isLoading: depositsLoading } = useReconDepositsQuery(filters);
 
-  useEffect(() => {
-    fetchDeposits(filters);
-  }, [filters, fetchDeposits]);
+  const kpis = summaryData?.kpis || null;
+  const depositMethods = summaryData?.depositMethods || [];
+  const recentTransactions = summaryData?.recentTransactions || [];
+  const alerts = alertsData?.alerts || [];
+  const alertCounts = {
+    total: alertsData?.total || 0,
+    critical: alertsData?.critical || 0,
+    warning: alertsData?.warning || 0,
+  };
+  const deposits: ReconDeposit[] = depositsData?.deposits || [];
+  const pagination = {
+    currentPage: depositsData?.currentPage || 1,
+    totalPages: depositsData?.totalPages || 1,
+    totalItems: depositsData?.totalItems || 0,
+  };
+
+  const loading = summaryLoading && !summaryData;
 
   const handleRefresh = useCallback(() => {
-    fetchSummary();
-    fetchAlerts();
-    fetchDeposits(filters);
-  }, [fetchSummary, fetchAlerts, fetchDeposits, filters]);
+    qc.invalidateQueries({ queryKey: queryKeys.reconciliation.summary });
+    qc.invalidateQueries({ queryKey: queryKeys.reconciliation.alerts });
+    qc.invalidateQueries({ queryKey: queryKeys.reconciliation.deposits() });
+  }, [qc]);
 
   const handlePageChange = useCallback(
     (page: number) => setFilters((p) => ({ ...p, page })),
@@ -213,23 +234,39 @@ export default function ReconciliationPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      {/* Error */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="size-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       {/* Header */}
       <PageHeader
         title="Đối soát giao dịch"
         description="Tổng quan, cảnh báo và danh sách giao dịch nạp tiền"
         actions={
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
-            Làm mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportTableToCsv(
+                  deposits.map((d) => ({
+                    ...d,
+                    amount: `${formatVND(d.amount)}đ`,
+                    declaredValue: d.declaredValue ? `${formatVND(d.declaredValue)}đ` : "",
+                    type: d.type === "bank" ? "Chuyển khoản" : "Thẻ cào",
+                    status: statusLabels[d.status] || d.status,
+                    createdAt: formatDate(d.createdAt),
+                    user: d.user || { username: "N/A", email: "" },
+                  })),
+                  CSV_COLUMNS,
+                  `reconciliation_deposits_${Date.now()}.csv`,
+                )
+              }
+              disabled={deposits.length === 0}
+            >
+              <Download className="mr-2 size-4" />
+              Export CSV
+            </Button>
+            <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
+              Làm mới
+            </Button>
+          </div>
         }
       />
 
@@ -253,82 +290,88 @@ export default function ReconciliationPage() {
 
         {/* ── Tab: Overview ───────────────────────────────────── */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          {/* KPI Cards */}
           <ReconKPICards kpis={kpis} loading={loading && !kpis} />
 
-          {/* Deposit Methods Summary */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Phân bổ phương thức nạp</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {depositMethods.map((m) => (
-                    <div key={m.method} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {m.method === "bank" ? (
-                          <Banknote className="size-4 text-blue-600" />
-                        ) : (
-                          <CreditCard className="size-4 text-purple-600" />
-                        )}
-                        <span className="text-sm font-medium">{m.label}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">{formatVND(m.todayAmount)}đ</div>
-                        <div className="text-xs text-muted-foreground">
-                          {m.todayCount} giao dịch hôm nay
+            {loading && !depositMethods.length ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : (
+              <>
+                <GlassCard>
+                  <CardHeader>
+                    <CardTitle className="text-base">Phân bổ phương thức nạp</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {depositMethods.map((m) => (
+                        <div key={m.method} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {m.method === "bank" ? (
+                              <Banknote className="size-4 text-blue-600" />
+                            ) : (
+                              <CreditCard className="size-4 text-purple-600" />
+                            )}
+                            <span className="text-sm font-medium">{m.label}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold">{formatVND(m.todayAmount)}đ</div>
+                            <div className="text-xs text-muted-foreground">
+                              {m.todayCount} giao dịch hôm nay
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </GlassCard>
 
-            {/* Recent Transactions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Giao dịch gần đây</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentTransactions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Chưa có giao dịch nào
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {recentTransactions.map((t) => (
-                      <div
-                        key={`${t.type}-${t.id}`}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          {t.type === "bank" ? (
-                            <Banknote className="size-3.5 text-blue-600 shrink-0" />
-                          ) : (
-                            <CreditCard className="size-3.5 text-purple-600 shrink-0" />
-                          )}
-                          <span className="truncate">{t.user}</span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="font-medium text-green-600">
-                            +{formatVND(t.amount)}đ
-                          </span>
-                        </div>
+                <GlassCard>
+                  <CardHeader>
+                    <CardTitle className="text-base">Giao dịch gần đây</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {recentTransactions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Chưa có giao dịch nào
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {recentTransactions.map((t) => (
+                          <div
+                            key={`${t.type}-${t.id}`}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {t.type === "bank" ? (
+                                <Banknote className="size-3.5 text-blue-600 shrink-0" />
+                              ) : (
+                                <CreditCard className="size-3.5 text-purple-600 shrink-0" />
+                              )}
+                              <span className="truncate">{t.user}</span>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="font-medium text-green-600">
+                                +{formatVND(t.amount)}đ
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    )}
+                  </CardContent>
+                </GlassCard>
+              </>
+            )}
           </div>
 
-          {/* Alerts summary on overview */}
           {alertCounts.total > 0 && (
-            <div className="flex items-center gap-3 p-3 rounded-lg border bg-amber-50/50">
-              <AlertTriangle className="size-5 text-amber-600 shrink-0" />
-              <p className="text-sm text-amber-800">
+            <GlassCard className="p-3 border-amber-500/20 bg-amber-500/10" variant="subtle">
+              <div className="flex items-center gap-3">
+              <AlertTriangle className="size-5 text-amber-500 shrink-0" />
+              <p className="text-sm text-amber-700 dark:text-amber-400">
                 <strong>{alertCounts.total}</strong> cảnh báo đang chờ xử lý
                 {alertCounts.critical > 0 && (
                   <span>, trong đó <strong className="text-red-600">{alertCounts.critical}</strong> nghiêm trọng</span>
@@ -336,6 +379,7 @@ export default function ReconciliationPage() {
                 . Chuyển sang tab <strong>Cảnh báo</strong> để xem chi tiết.
               </p>
             </div>
+            </GlassCard>
           )}
         </TabsContent>
 
@@ -344,13 +388,12 @@ export default function ReconciliationPage() {
           <ReconAlertsPanel
             alerts={alerts}
             counts={alertCounts}
-            loading={loading && alerts.length === 0}
+            loading={false}
           />
         </TabsContent>
 
         {/* ── Tab: Deposits ───────────────────────────────────── */}
         <TabsContent value="deposits" className="mt-4 space-y-4">
-          {/* Filters */}
           <FilterBar
             showReset={
               filters.search !== "" || filters.status !== "" || filters.type !== ""
@@ -384,21 +427,21 @@ export default function ReconciliationPage() {
             </div>
           </FilterBar>
 
-          {/* Table */}
           <DataTable
             columns={columns}
             data={deposits}
-            loading={loading}
+            loading={depositsLoading && !deposits.length}
             pageSize={filters.limit}
             totalItems={pagination.totalItems}
             currentPage={pagination.currentPage}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
             emptyState={
-              <div className="py-12 text-center text-muted-foreground">
-                <p className="font-medium">Không tìm thấy giao dịch</p>
-                <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
-              </div>
+              <EmptyState
+                icon={SearchX}
+                title="Không tìm thấy giao dịch"
+                description="Thử thay đổi bộ lọc hoặc tạo giao dịch mới"
+              />
             }
           />
         </TabsContent>

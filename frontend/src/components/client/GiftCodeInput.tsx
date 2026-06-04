@@ -61,15 +61,15 @@ const GiftCodeInput = ({ amount, game, onApply, onRemove }: GiftCodeInputProps) 
   return (
     <div className="space-y-2">
       {!result?.valid ? (
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <BadgePercent className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="relative flex-1 group">
+            <BadgePercent className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground transition-colors duration-200 group-focus-within:text-blue-600" />
             <Input
               placeholder="Nhập mã giảm giá..."
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && handleValidate()}
-              className="pl-10"
+              className="pl-10 transition-all duration-200 focus:scale-[1.02] focus:shadow-md"
               maxLength={20}
             />
           </div>
@@ -78,6 +78,7 @@ const GiftCodeInput = ({ amount, game, onApply, onRemove }: GiftCodeInputProps) 
             size="sm"
             onClick={handleValidate}
             disabled={loading || !code.trim()}
+            className="w-full sm:w-auto transition-all duration-200 hover:scale-105 active:scale-95 disabled:hover:scale-100"
           >
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -89,14 +90,14 @@ const GiftCodeInput = ({ amount, game, onApply, onRemove }: GiftCodeInputProps) 
       ) : null}
 
       {result && !result.valid && (
-        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
+        <div className="animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
           <XCircle className="size-4 flex-shrink-0" />
           <span>{result.message}</span>
         </div>
       )}
 
       {result?.valid && (
-        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md px-3 py-2">
+        <div className="animate-in fade-in zoom-in-95 duration-200 flex items-center justify-between bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md px-3 py-2">
           <div className="flex items-center gap-2">
             <CheckCircle className="size-4 text-green-600" />
             <span className="text-sm font-medium text-green-800">
@@ -109,7 +110,7 @@ const GiftCodeInput = ({ amount, game, onApply, onRemove }: GiftCodeInputProps) 
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 text-xs text-red-500 hover:text-red-700"
+            className="h-6 text-xs text-red-500 hover:text-red-700 transition-all duration-150 hover:scale-105 active:scale-95"
             onClick={handleRemove}
           >
             Huỷ

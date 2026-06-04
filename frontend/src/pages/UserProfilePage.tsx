@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
+import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,22 +17,26 @@ import {
   Lock,
   Mail,
   Package,
+  Pencil,
   Shield,
+  Check,
+  X,
   User as UserIcon,
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { authService } from "@/services/client/authService";
 
 const UserProfilePage = () => {
-  const { user, loading } = useAuthStore();
+  const { user, loading, updateUser } = useAuthStore();
   const navigate = useNavigate();
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <Card>
+      <div className="py-8 max-w-3xl mx-auto">
+        <GlassCard>
           <CardHeader>
             <Skeleton className="h-8 w-48" />
           </CardHeader>
@@ -39,20 +45,22 @@ const UserProfilePage = () => {
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-6 w-1/2" />
           </CardContent>
-        </Card>
+        </GlassCard>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <UserIcon className="size-16 mx-auto text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold mb-4">Vui lòng đăng nhập</h2>
-        <p className="text-muted-foreground mb-6">
-          Bạn cần đăng nhập để xem thông tin cá nhân.
-        </p>
-        <Button onClick={() => navigate("/signin")}>Đăng nhập ngay</Button>
+      <div className="py-20 text-center">
+        <GlassCard className="max-w-md mx-auto p-8">
+          <UserIcon className="size-16 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-bold mb-4">Vui lòng đăng nhập</h2>
+          <p className="text-muted-foreground mb-6">
+            Bạn cần đăng nhập để xem thông tin cá nhân.
+          </p>
+          <GradientButton onClick={() => navigate("/signin")}>Đăng nhập ngay</GradientButton>
+        </GlassCard>
       </div>
     );
   }
@@ -83,6 +91,39 @@ const UserProfilePage = () => {
       bg: "bg-purple-50",
     },
   ];
+
+  // ─── Display Name Edit ────────────────────────────────────────────
+  const [editingDisplayName, setEditingDisplayName] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState(user?.displayName || "");
+  const [displayNameSubmitting, setDisplayNameSubmitting] = useState(false);
+
+  const handleUpdateDisplayName = async () => {
+    const trimmed = displayNameInput.trim();
+    if (!trimmed) {
+      toast.error("Vui lòng nhập tên hiển thị");
+      return;
+    }
+    if (trimmed.length > 30) {
+      toast.error("Tên hiển thị tối đa 30 ký tự");
+      return;
+    }
+    setDisplayNameSubmitting(true);
+    try {
+      await authService.updateDisplayName(trimmed);
+      updateUser({ displayName: trimmed });
+      toast.success("Cập nhật tên hiển thị thành công!");
+      setEditingDisplayName(false);
+    } catch (error: any) {
+      toast.error(error?.message || "Có lỗi xảy ra");
+    } finally {
+      setDisplayNameSubmitting(false);
+    }
+  };
+
+  const cancelEditDisplayName = () => {
+    setDisplayNameInput(user?.displayName || "");
+    setEditingDisplayName(false);
+  };
 
   // ─── Change Password ──────────────────────────────────────────────
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -133,10 +174,10 @@ const UserProfilePage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl space-y-6">
+    <div className="py-8 max-w-3xl mx-auto space-y-6">
       {/* Profile Header */}
-      <Card className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-blue-500 to-blue-600" />
+      <GlassCard className="overflow-hidden">
+        <div className="h-24 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500" />
         <CardContent className="relative px-6 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
             <div className="size-24 rounded-full border-4 border-white bg-blue-100 flex items-center justify-center shadow-lg">
@@ -151,21 +192,72 @@ const UserProfilePage = () => {
               )}
             </div>
             <div className="flex-1 pt-2 sm:pt-0 sm:pb-1">
-              <h1 className="text-2xl font-bold">{user.displayName}</h1>
+              {editingDisplayName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={displayNameInput}
+                    onChange={(e) => setDisplayNameInput(e.target.value)}
+                    className="h-9 max-w-[250px] text-base font-bold border-blue-400 focus-visible:ring-blue-500"
+                    placeholder="Nhập tên hiển thị"
+                    maxLength={30}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleUpdateDisplayName();
+                      if (e.key === "Escape") cancelEditDisplayName();
+                    }}
+                  />
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="size-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                    onClick={handleUpdateDisplayName}
+                    disabled={displayNameSubmitting}
+                  >
+                    {displayNameSubmitting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Check className="size-4" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="size-8 text-muted-foreground hover:text-foreground"
+                    onClick={cancelEditDisplayName}
+                    disabled={displayNameSubmitting}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group">
+                  <h1 className="text-2xl font-bold">{user.displayName}</h1>
+                  <button
+                    onClick={() => {
+                      setDisplayNameInput(user.displayName);
+                      setEditingDisplayName(true);
+                    }}
+                    className="size-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted/50"
+                    title="Đổi tên hiển thị"
+                  >
+                    <Pencil className="size-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              )}
               <p className="text-muted-foreground">@{user.username}</p>
             </div>
             <Badge
               variant="secondary"
-              className="bg-green-50 text-green-700 border-green-200 self-start sm:self-center"
+              className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 self-start sm:self-center"
             >
               Thành viên
             </Badge>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
 
       {/* Balance Card */}
-      <Card>
+      <GlassCard>
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -177,23 +269,20 @@ const UserProfilePage = () => {
                 {(user.balance || 0).toLocaleString("vi-VN")}đ
               </p>
             </div>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => navigate("/shop")}
-            >
+            <GradientButton onClick={() => navigate("/shop")}>
               <CreditCard className="size-4 mr-2" />
               Nạp tiền
-            </Button>
+            </GradientButton>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {quickActions.map((action) => (
-          <Card
+          <GlassCard
             key={action.label}
-            className="cursor-pointer hover:shadow-md transition-shadow group"
+            className="cursor-pointer hover:shadow-lg transition-all duration-300 group hover:-translate-y-0.5"
             onClick={action.onClick}
           >
             <CardContent className="p-4 flex items-center gap-3">
@@ -210,13 +299,13 @@ const UserProfilePage = () => {
               </div>
               <ChevronRight className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
             </CardContent>
-          </Card>
+          </GlassCard>
         ))}
       </div>
 
       {/* Change Password Card */}
       {showChangePassword && (
-        <Card>
+        <GlassCard>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Lock className="size-5" />
@@ -229,37 +318,44 @@ const UserProfilePage = () => {
                 <label className="text-sm font-medium">Mật khẩu hiện tại</label>
                 <Input
                   type="password"
+                  className="border-border/50 bg-muted/20"
                   placeholder="Nhập mật khẩu hiện tại"
                   value={pwCurrent}
                   onChange={(e) => setPwCurrent(e.target.value)}
+                  autoComplete="current-password"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Mật khẩu mới</label>
                 <Input
                   type="password"
+                  className="border-border/50 bg-muted/20"
                   placeholder="Ít nhất 6 ký tự"
                   value={pwNew}
                   onChange={(e) => setPwNew(e.target.value)}
+                  autoComplete="new-password"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Xác nhận mật khẩu mới</label>
                 <Input
                   type="password"
+                  className="border-border/50 bg-muted/20"
                   placeholder="Nhập lại mật khẩu mới"
                   value={pwConfirm}
                   onChange={(e) => setPwConfirm(e.target.value)}
+                  autoComplete="new-password"
                 />
               </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={pwSubmitting}>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <GradientButton type="submit" disabled={pwSubmitting} className="w-full sm:w-auto">
                   {pwSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Đổi mật khẩu
-                </Button>
+                </GradientButton>
                 <Button
                   type="button"
                   variant="outline"
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     setShowChangePassword(false);
                     setPwCurrent("");
@@ -272,11 +368,11 @@ const UserProfilePage = () => {
               </div>
             </form>
           </CardContent>
-        </Card>
+        </GlassCard>
       )}
 
       {/* Account Info */}
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <UserIcon className="size-5" />
@@ -326,7 +422,7 @@ const UserProfilePage = () => {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
     </div>
   );
 };

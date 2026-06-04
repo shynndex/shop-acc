@@ -1,6 +1,6 @@
 import Order from "../../models/Order.model.js";
 import Account from "../../models/Account.model.js";
-import User from "../../models/User.model.js";
+import User from "../../models/client/User.model.js";
 import CardDeposit from "../../models/client/deposits/CardDeposit.model.js";
 import BankDeposit from "../../models/client/deposits/BankDeposit.model.js";
 import { asyncHandler } from "../../middlewares/errorHandler.js";
@@ -37,7 +37,7 @@ export const getDashboard = asyncHandler(async (req, res) => {
     Order.countDocuments(orderFilter),
 
     // User mới
-    User.countDocuments({ createdAt: dateFilter.createdAt || {} }),
+    User.countDocuments(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}),
 
     // Accounts đang bán (chưa sold)
     Account.countDocuments({ isActive: true, isSold: false }),
@@ -195,5 +195,45 @@ export const getDashboard = asyncHandler(async (req, res) => {
       depositMethods,
       recentActivities,
     },
+  });
+});
+
+/**
+ * GET /api/admin/analytics/revenue-trend
+ * Chỉ trả về revenue trend (dùng để refresh chart)
+ */
+export const getRevenueTrend = asyncHandler(async (req, res) => {
+  const { dateFrom, dateTo, game } = req.query;
+
+  const dateFilter = {};
+  if (dateFrom || dateTo) {
+    dateFilter.createdAt = {};
+    if (dateFrom) dateFilter.createdAt.$gte = new Date(dateFrom);
+    if (dateTo) dateFilter.createdAt.$lte = new Date(dateTo);
+  }
+
+  const orderFilter = { ...dateFilter, status: "completed" };
+
+  if (game) {
+    const accountIds = await Account.find({ game }).distinct("_id");
+    orderFilter.account = { $in: accountIds };
+  }
+
+  const revenueTrend = await Order.aggregate([
+    { $match: orderFilter },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        revenue: { $sum: "$amount" },
+        orders: { $sum: 1 },
+      },
+    },
+    { $project: { _id: 0, date: "$_id", revenue: 1, orders: 1 } },
+    { $sort: { date: 1 } },
+  ]);
+
+  res.json({
+    success: true,
+    data: revenueTrend,
   });
 });

@@ -18,7 +18,7 @@ export const cloudinaryService = {
     const formData = new FormData();
     formData.append("file", file);
 
-    const { data } = await api.post<CloudinaryUploadResponse>(
+    const data = await api.post<CloudinaryUploadResponse>(
       "/admin/upload",
       formData,
       {

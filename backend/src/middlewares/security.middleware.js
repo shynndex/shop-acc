@@ -151,6 +151,23 @@ export function applySecurity(app) {
       "camera=(), microphone=(), geolocation=(), interest-cohort=()",
     );
 
+    // ── Strict-Transport-Security (HSTS) — production only ────────────
+    // Tells browsers to always connect via HTTPS for 1 year, including subdomains.
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains; preload",
+      );
+    }
+
+    // ── Cross-Origin-Embedder-Policy ─────────────────────────────────
+    // Skip in development to allow cross-origin Vite dev server.
+    // Note: isDev is evaluated at module load (before dotenv), so check at request time.
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+      res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    }
+
     next();
   });
 }

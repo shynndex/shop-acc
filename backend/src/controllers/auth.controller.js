@@ -3,7 +3,7 @@ import User from "../models/client/User.model.js";
 import jwt from "jsonwebtoken";
 import Session from "../models/client/Session.model.js";
 import crypto from "crypto";
-import { sendVerificationEmail } from "../services/mail.service.js";
+import { sendVerificationEmail, sendResetPasswordEmail } from "../services/mail.service.js";
 import { asyncHandler, AppError } from "../middlewares/errorHandler.js";
 import { notifyNewUser } from "../services/telegram.service.js";
 
@@ -17,7 +17,7 @@ const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 phút
 export const signUp = asyncHandler(async (req, res) => {
   const { username, password, email, firstName, lastName } = req.body;
 
-  if (!username || !password || !email || !firstName || !lastName) {
+  if (!username || !password || !email) {
     throw new AppError("Vui lòng điền đầy đủ thông tin", 400);
   }
 
@@ -27,7 +27,7 @@ export const signUp = asyncHandler(async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
-  const displayName = `${firstName} ${lastName}`;
+  const displayName = username;
 
   const verificationToken = crypto.randomBytes(32).toString("hex");
   const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -41,7 +41,12 @@ export const signUp = asyncHandler(async (req, res) => {
     verificationTokenExpiry,
   });
 
-  await sendVerificationEmail(email, verificationToken, displayName);
+  // Gửi email xác thực (silent fail — không block registration)
+  try {
+    await sendVerificationEmail(email, verificationToken, displayName);
+  } catch (emailErr) {
+    console.warn("[Auth] Failed to send verification email:", emailErr.message);
+  }
 
   // Telegram notification (silent fail)
   notifyNewUser(username, email);
@@ -50,15 +55,17 @@ export const signUp = asyncHandler(async (req, res) => {
 });
 
 export const signIn = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
+  const { identifier, password } = req.body;
+  if (!identifier || !password) {
     throw new AppError("Thiếu dữ liệu", 400);
   }
 
-  const user = await User.findOne({ email }).select("+hashedPassword +failedLoginAttempts +lockoutUntil");
+  const user = await User.findOne({
+    $or: [{ email: identifier }, { username: identifier }],
+  }).select("+hashedPassword +failedLoginAttempts +lockoutUntil");
 
   if (!user) {
-    throw new AppError("Sai email hoặc password", 401);
+    throw new AppError("Sai email/tên đăng nhập hoặc password", 401);
   }
 
   // ── Check lockout ──────────────────────────────────────────────────────
@@ -150,27 +157,65 @@ export const signOut = asyncHandler(async (req, res) => {
   res.sendStatus(204);
 });
 
+/**
+ * Refresh Token Rotation with Reuse Detection
+ *
+ * Flow:
+ *   1. Look up session by refreshToken OR previousRefreshToken
+ *   2. If matched by previousRefreshToken → token reuse detected!
+ *      This means the token was stolen and already rotated by attacker.
+ *      → Revoke ALL sessions for this user (force logout everywhere)
+ *   3. If matched by refreshToken → normal rotation:
+ *      - Move current refreshToken → previousRefreshToken
+ *      - Generate new refreshToken
+ *      - Extend expiry
+ *   4. Return new accessToken + new refreshToken cookie
+ */
 export const refreshToken = asyncHandler(async (req, res) => {
   const oldRefreshToken = req.cookies?.refreshToken;
   if (!oldRefreshToken) {
     throw new AppError("Không tìm thấy token làm mới", 401);
   }
 
-  const session = await Session.findOne({ refreshToken: oldRefreshToken });
+  // ── Look for session by current OR previous refresh token ────────
+  const session = await Session.findOne({
+    $or: [
+      { refreshToken: oldRefreshToken },
+      { previousRefreshToken: oldRefreshToken },
+    ],
+  });
+
   if (!session) {
-    //  Token không tồn tại → có thể bị tấn công → xóa cookie để bảo vệ
+    // Token không tồn tại trong cả 2 field
     res.clearCookie("refreshToken", { path: "/" });
     throw new AppError("Token làm mới không hợp lệ", 401);
   }
 
+  // ── REUSE DETECTED ───────────────────────────────────────────────
+  if (session.previousRefreshToken === oldRefreshToken) {
+    // Token cũ (đã được rotate) đang bị dùng lại → đánh cắp token!
+    // Thu hồi TẤT CẢ session của user này
+    await Session.deleteMany({ userId: session.userId });
+
+    res.clearCookie("refreshToken", { path: "/" });
+    throw new AppError(
+      "Phiên đăng nhập đã bị thu hồi do phát hiện bất thường. Vui lòng đăng nhập lại.",
+      401,
+    );
+  }
+
+  // ── Check expiry ─────────────────────────────────────────────────
   if (session.expiresAt < new Date()) {
-    await Session.deleteMany({ _id: session._id }); // dọn session hết hạn
+    await Session.deleteOne({ _id: session._id });
     res.clearCookie("refreshToken", { path: "/" });
     throw new AppError("Token làm mới đã hết hạn", 401);
   }
 
+  // ── Normal rotation ──────────────────────────────────────────────
   const newRefreshToken = crypto.randomBytes(64).toString("hex");
 
+  // Move current token to previous, set new token
+  session.previousRefreshToken = session.refreshToken;
   session.refreshToken = newRefreshToken;
   session.expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL);
   await session.save();
@@ -259,6 +304,102 @@ export const getMe = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     user,
+  });
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError("Vui lòng nhập email", 400);
+  }
+
+  const user = await User.findOne({ email });
+
+  // Luôn trả về thành công dù email có tồn tại hay không (chống leak thông tin)
+  if (!user) {
+    return res.json({
+      success: true,
+      message:
+        "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được link đặt lại mật khẩu.",
+    });
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
+  await user.save();
+
+  await sendResetPasswordEmail(user.email, resetToken, user.displayName);
+
+  res.json({
+    success: true,
+    message:
+      "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được link đặt lại mật khẩu.",
+  });
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    throw new AppError("Thiếu dữ liệu", 400);
+  }
+
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new AppError("Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn", 400);
+  }
+
+  user.hashedPassword = await bcrypt.hash(password, 12);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  // Reset failed login attempts vì đây là chủ tài khoản
+  user.failedLoginAttempts = 0;
+  user.lockoutUntil = null;
+
+  await user.save();
+
+  // ── Vô hiệu hóa tất cả session cũ ─────────────────────────────────
+  await Session.deleteMany({ userId: user._id });
+
+  res.json({
+    success: true,
+    message: "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập.",
+  });
+});
+
+export const updateDisplayName = asyncHandler(async (req, res) => {
+  const { displayName } = req.body;
+  const userId = req.user._id;
+
+  if (!displayName || !displayName.trim()) {
+    throw new AppError("Vui lòng nhập tên hiển thị", 400);
+  }
+
+  if (displayName.trim().length > 30) {
+    throw new AppError("Tên hiển thị tối đa 30 ký tự", 400);
+  }
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { displayName: displayName.trim() },
+    { new: true, select: "displayName" },
+  );
+
+  if (!user) {
+    throw new AppError("Người dùng không tồn tại", 404);
+  }
+
+  res.json({
+    success: true,
+    message: "Cập nhật tên hiển thị thành công",
+    data: { displayName: user.displayName },
   });
 });
 

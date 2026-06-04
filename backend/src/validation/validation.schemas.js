@@ -13,12 +13,10 @@ export const signUpSchema = z.object({
     .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
     .max(128, "Mật khẩu tối đa 128 ký tự"),
   email: z.string().email("Email không hợp lệ").max(255),
-  firstName: z.string().min(1, "Vui lòng nhập tên").max(50),
-  lastName: z.string().min(1, "Vui lòng nhập họ").max(50),
 });
 
 export const signInSchema = z.object({
-  email: z.string().email("Email không hợp lệ"),
+  identifier: z.string().min(1, "Vui lòng nhập email hoặc tên đăng nhập"),
   password: z.string().min(1, "Vui lòng nhập mật khẩu"),
 });
 
@@ -169,6 +167,32 @@ export const adminLoginSchema = z.object({
   password: z.string().min(1, "Vui lòng nhập mật khẩu"),
 });
 
+export const adminTwoFactorCodeSchema = z.object({
+  totpCode: z
+    .string()
+    .min(6, "Mã xác thực phải có 6 chữ số")
+    .max(6, "Mã xác thực phải có 6 chữ số")
+    .regex(/^\d{6}$/, "Mã xác thực phải gồm 6 chữ số"),
+});
+
+export const adminTwoFactorDisableSchema = z.object({
+  password: z.string().min(1, "Vui lòng nhập mật khẩu"),
+  totpCode: z
+    .string()
+    .min(6, "Mã xác thực phải có 6 chữ số")
+    .max(6, "Mã xác thực phải có 6 chữ số")
+    .regex(/^\d{6}$/, "Mã xác thực phải gồm 6 chữ số"),
+});
+
+export const adminTwoFactorVerifySchema = z.object({
+  tempToken: z.string().min(1, "Thiếu mã tạm thời"),
+  totpCode: z
+    .string()
+    .min(6, "Mã xác thực phải có 6 chữ số")
+    .max(6, "Mã xác thực phải có 6 chữ số")
+    .regex(/^\d{6}$/, "Mã xác thực phải gồm 6 chữ số"),
+});
+
 // ─── ADMIN REVIEW MODERATION ───────────────────────────────────────────────
 
 export const moderateReviewSchema = z.object({
@@ -186,15 +210,18 @@ export const updateDepositStatusSchema = z.object({
   note: z.string().max(500).optional(),
 });
 
-// ─── COMPARE ACCOUNTS ───────────────────────────────────────────────────────
+// ─── FORGOT / RESET PASSWORD ────────────────────────────────────────────────
 
-export const compareAccountsSchema = z.object({
-  ids: z
-    .array(
-      z.string().regex(/^[a-fA-F0-9]{24}$/, "ID tài khoản không hợp lệ"),
-    )
-    .min(2, "Cần ít nhất 2 tài khoản để so sánh")
-    .max(10, "Tối đa 10 tài khoản để so sánh"),
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Email không hợp lệ"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token không hợp lệ"),
+  password: z
+    .string()
+    .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
+    .max(128, "Mật khẩu tối đa 128 ký tự"),
 });
 
 // ─── ID PARAM SCHEMA ───────────────────────────────────────────────────────

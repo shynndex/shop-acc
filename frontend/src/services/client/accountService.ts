@@ -16,14 +16,6 @@ export const accountService = {
   },
 
   /**
-   * So sánh nhiều tài khoản
-   * POST /api/accounts/compare
-   */
-  compare: async (ids: string[]): Promise<{ accounts: Account[] }> => {
-    return await api.post<{ accounts: Account[] }>("/accounts/compare", { ids });
-  },
-
-  /**
    * Lấy chi tiết 1 tài khoản theo ID
    * GET /api/accounts/:id
    */
@@ -44,6 +36,24 @@ export const accountService = {
   },
 
   /**
+   * Lấy tài khoản theo game cho sections trang chủ
+   * GET /api/accounts/by-game?limit=4
+   */
+  getByGame: async (limit = 4): Promise<{
+    sections: {
+      gameSlug: string;
+      gameName: string;
+      gameIcon: string;
+      accounts: Account[];
+    }[];
+  }> => {
+    const data = await api.get<{ sections: any[] }>("/accounts/by-game", {
+      params: { limit },
+    });
+    return data;
+  },
+
+  /**
    * Lấy gợi ý sản phẩm
    * GET /api/accounts/suggestions?accountId=...&type=related|popular
    */
@@ -56,5 +66,27 @@ export const accountService = {
       params,
     });
     return data.accounts || data;
+  },
+
+  /**
+   * Lấy top người nạp tiền (podium trang chủ)
+   * GET /api/accounts/top-depositors?limit=3
+   */
+  getTopDepositors: async (
+    limit = 3,
+  ): Promise<{
+    depositors: {
+      rank: number;
+      userId: string;
+      displayName: string;
+      avatarUrl: string | null;
+      totalDeposited: number;
+    }[];
+  }> => {
+    const data = await api.get<{ depositors: any[] }>(
+      "/accounts/top-depositors",
+      { params: { limit } },
+    );
+    return data;
   },
 };

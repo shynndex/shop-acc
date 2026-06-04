@@ -152,7 +152,7 @@ const ImageUploadField = ({
       </div>
 
       {/* Input URL */}
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -171,7 +171,7 @@ const ImageUploadField = ({
 
       {/* Preview */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           {images.map((image) => (
             <div
               key={image.id} // Dùng id thay vì index
