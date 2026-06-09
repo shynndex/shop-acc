@@ -305,7 +305,7 @@ function CreateGiftcodeForm({ onSuccess }: { onSuccess: () => void }) {
         <DialogDescription>Nhập thông tin mã giảm giá bên dưới</DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4 py-4">
+      <div className="space-y-5 py-5">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Mã code *</label>
           <Input

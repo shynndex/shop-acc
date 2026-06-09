@@ -65,39 +65,39 @@ const MiniAccountCard = ({ acc, index }: { acc: Account; index: number }) => {
             <Gamepad2 className="size-10 text-gray-300" />
           )}
           {acc.attributes?.discount && (
-            <Badge className="absolute top-1.5 left-1.5 bg-red-500 text-[10px] px-1.5 py-0.5 h-auto">
+            <Badge className="absolute top-1.5 left-1.5 bg-red-500 text-xs px-2 py-0.5 h-auto">
               -{acc.attributes.discount}%
             </Badge>
           )}
           {acc.rating?.count > 0 && (
-            <Badge className="absolute top-1.5 right-1.5 bg-yellow-500 text-[10px] px-1.5 py-0.5 h-auto flex items-center gap-0.5">
-              <Star className="size-2.5 fill-white" />
+            <Badge className="absolute top-1.5 right-1.5 bg-yellow-500 text-xs px-2 py-0.5 h-auto flex items-center gap-0.5">
+              <Star className="size-3 fill-white" />
               {acc.rating.avg}
             </Badge>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
-        <CardContent className="p-2.5">
-          <p className="text-xs font-semibold line-clamp-1 group-hover:text-blue-600 transition-colors">
+        <CardContent className="p-3">
+          <p className="text-sm font-semibold line-clamp-1 group-hover:text-blue-600 transition-colors">
             {acc.title}
           </p>
           <div className="flex items-center justify-between mt-1.5">
             {acc.attributes?.originalPrice ? (
               <div>
-                <p className="text-[10px] text-muted-foreground line-through">
+                <p className="text-xs text-muted-foreground line-through">
                   {acc.attributes.originalPrice.toLocaleString("vi-VN")}đ
                 </p>
-                <p className="text-xs font-bold text-red-600">
+                <p className="text-sm font-bold text-red-600">
                   {acc.price.toLocaleString("vi-VN")}đ
                 </p>
               </div>
             ) : (
-              <p className="text-xs font-bold text-red-600">
+              <p className="text-sm font-bold text-red-600">
                 {acc.price.toLocaleString("vi-VN")}đ
               </p>
             )}
             {acc.rating?.count > 0 && (
-              <span className="text-[10px] text-yellow-600 flex items-center gap-0.5">
+              <span className="text-xs text-yellow-600 flex items-center gap-0.5">
                 <Star className="size-3 fill-yellow-400 text-yellow-400" />
                 {acc.rating.avg}
               </span>
@@ -148,19 +148,19 @@ const CategoryGroupCard = ({
           </div>
         </div>
 
-        <CardContent className="p-3 space-y-2">            <h3 className="font-bold text-sm text-gray-800 dark:text-gray-100 line-clamp-2 min-h-[36px] group-hover:text-orange-600 transition-colors">
+        <CardContent className="p-3 space-y-2">            <h3 className="font-bold text-base text-gray-800 dark:text-gray-100 line-clamp-2 min-h-[40px] group-hover:text-orange-600 transition-colors">
             {cat.name}
           </h3>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Gamepad2 className="size-3" />
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Gamepad2 className="size-4" />
               <span>
                 Còn <strong className="text-red-600">{cat.stock}</strong> nick
               </span>
             </div>
             <Button
               variant="ghost"
-              size="xs"
+              size="sm"
               className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();

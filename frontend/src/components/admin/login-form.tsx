@@ -73,7 +73,8 @@ export function LoginForm({
       const redirectTo = fromState || (fromParam ? decodeURIComponent(fromParam) : "/admin");
       navigate(redirectTo);
     } catch (error: any) {
-      toast.error("Đăng nhập thất bại, Vui lòng kiểm tra lại thông tin");
+      const message = error?.response?.data?.message || error?.message || "Đăng nhập thất bại";
+      toast.error(message);
     }
   };
 

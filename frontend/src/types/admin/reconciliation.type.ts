@@ -108,6 +108,74 @@ export interface ReconDepositsResponse {
   };
 }
 
+// ── Chart Data ────────────────────────────────────────────────
+export interface ChartDataPoint {
+  date: string;
+  bank: number;
+  card: number;
+  total: number;
+}
+
+export interface TopDepositor {
+  userId: string;
+  username: string;
+  totalAmount: number;
+  transactionCount: number;
+}
+
+export interface MethodDistribution {
+  method: string;
+  label: string;
+  amount: number;
+  count: number;
+}
+
+export interface ReconChartDataResponse {
+  success: boolean;
+  data: {
+    timeSeries: ChartDataPoint[];
+    statusDistribution: Record<string, number>;
+    topDepositors: TopDepositor[];
+    methodDistribution: MethodDistribution[];
+  };
+}
+
+// ── Mismatch Alert ─────────────────────────────────────────────
+export type MismatchType =
+  | "order_amount_mismatch"
+  | "order_status_mismatch"
+  | "orphan_deposit"
+  | "serial_pin_duplicate"
+  | "bank_amount_mismatch"
+  | "abnormal_deposit"
+  | "abnormal_pending";
+
+export interface MismatchAlertItem {
+  _id: string;
+  type: MismatchType;
+  severity: "warning" | "critical";
+  deposit?: any;
+  order?: any;
+  user?: { _id: string; username: string; email?: string };
+  message: string;
+  details?: Record<string, any>;
+  status: "pending" | "resolved";
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+}
+
+export interface ReconMismatchesResponse {
+  success: boolean;
+  data: {
+    mismatches: MismatchAlertItem[];
+    totalPages: number;
+    currentPage: number;
+    totalItems: number;
+    stats: { pending: number; resolved: number };
+  };
+}
+
 // ── Store State ─────────────────────────────────────────────────
 export interface ReconciliationState {
   // Summary

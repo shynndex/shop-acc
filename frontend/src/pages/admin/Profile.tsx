@@ -325,8 +325,8 @@ const Profile = () => {
 
         <CardContent className="pt-6 space-y-5">
           {/* 2FA Section */}
-          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border">
-            <div className="flex items-start gap-3">
+          <div className="flex items-center justify-between p-4 bg-muted/40 rounded-lg border">
+            <div className="flex items-start gap-4">
               <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Smartphone className="size-4 text-primary" />
               </div>
@@ -341,8 +341,8 @@ const Profile = () => {
           </div>
 
           {/* Account Info */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
               <div className="size-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                 <CalendarClock className="size-3.5 text-blue-600 dark:text-blue-400" />
               </div>
@@ -364,7 +364,7 @@ const Profile = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
               <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
               </div>

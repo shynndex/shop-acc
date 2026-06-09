@@ -1,34 +1,38 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ReconKPICards } from "@/components/admin/reconciliation/ReconKPICards";
 import { ReconAlertsPanel } from "@/components/admin/reconciliation/ReconAlertsPanel";
+import { ReconCharts } from "@/components/admin/reconciliation/ReconCharts";
+import { ReconMismatchPanel } from "@/components/admin/reconciliation/ReconMismatchPanel";
 import { PageHeader, FilterBar, SearchBar, FilterDropdown, DataTable } from "@/components/admin/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useReconSummaryQuery,
   useReconAlertsQuery,
   useReconDepositsQuery,
+  useReconChartDataQuery,
 } from "@/hooks/queries/useAdminQueries";
 import { exportTableToCsv } from "@/hooks/useExportCsv";
 import { cn, formatVND, formatDate } from "@/lib/utils";
 import type { ReconDeposit } from "@/types/admin/reconciliation.type";
 import type { ColumnDef } from "@tanstack/react-table";
-import { SkeletonCard } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/empty";
 import {
   RefreshCw,
-  AlertCircle,
   AlertTriangle,
+  ArrowRight,
   Banknote,
   CreditCard,
   Eye,
   Download,
   MoreHorizontal,
   SearchX,
+  Pause,
+  Play,
+  GitCompareArrows,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -182,10 +186,23 @@ const typeOptions = [
 ];
 
 // ── Page ────────────────────────────────────────────────────────
+const AUTO_REFRESH_INTERVAL = 30_000;
+function toLocalDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+const DEFAULT_DATE_FROM = toLocalDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+const DEFAULT_DATE_TO = toLocalDateStr(new Date());
+
 export default function ReconciliationPage() {
   const qc = useQueryClient();
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [chartFilters, setChartFilters] = useState({
+    dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    dateTo: new Date().toISOString().slice(0, 10),
+    type: "",
+  });
   const [filters, setFilters] = useState({
     search: "",
     status: "",
@@ -197,10 +214,9 @@ export default function ReconciliationPage() {
   const { data: summaryData, isLoading: summaryLoading } = useReconSummaryQuery();
   const { data: alertsData } = useReconAlertsQuery();
   const { data: depositsData, isLoading: depositsLoading } = useReconDepositsQuery(filters);
+  const { data: chartData, isLoading: chartLoading } = useReconChartDataQuery(chartFilters);
 
   const kpis = summaryData?.kpis || null;
-  const depositMethods = summaryData?.depositMethods || [];
-  const recentTransactions = summaryData?.recentTransactions || [];
   const alerts = alertsData?.alerts || [];
   const alertCounts = {
     total: alertsData?.total || 0,
@@ -215,12 +231,26 @@ export default function ReconciliationPage() {
   };
 
   const loading = summaryLoading && !summaryData;
+  const chartDateChanged = chartFilters.dateFrom !== DEFAULT_DATE_FROM || chartFilters.dateTo !== DEFAULT_DATE_TO;
+
+  // ── Auto-refresh ──────────────────────────────────────────────
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: queryKeys.reconciliation.summary });
     qc.invalidateQueries({ queryKey: queryKeys.reconciliation.alerts });
     qc.invalidateQueries({ queryKey: queryKeys.reconciliation.deposits() });
+    qc.invalidateQueries({ queryKey: queryKeys.reconciliation.chartData() });
   }, [qc]);
+
+  useEffect(() => {
+    if (autoRefresh) {
+      intervalRef.current = setInterval(handleRefresh, AUTO_REFRESH_INTERVAL);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [autoRefresh, handleRefresh]);
 
   const handlePageChange = useCallback(
     (page: number) => setFilters((p) => ({ ...p, page })),
@@ -262,6 +292,15 @@ export default function ReconciliationPage() {
               <Download className="mr-2 size-4" />
               Export CSV
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAutoRefresh((p) => !p)}
+              className={cn(autoRefresh && "border-green-300 text-green-700")}
+            >
+              {autoRefresh ? <Pause className="mr-1 size-3" /> : <Play className="mr-1 size-3" />}
+              {autoRefresh ? "Tự động" : "Tắt tự động"}
+            </Button>
             <Button variant="outline" onClick={handleRefresh} disabled={loading}>
               <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
               Làm mới
@@ -272,115 +311,109 @@ export default function ReconciliationPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-          <TabsTrigger value="alerts">
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="overview" className="text-xs">Tổng quan</TabsTrigger>
+          <TabsTrigger value="alerts" className="text-xs">
             Cảnh báo
             {alertCounts.total > 0 && (
               <Badge
                 variant={alertCounts.critical > 0 ? "destructive" : "secondary"}
-                className="ml-2 text-[10px] px-1.5 py-0"
+                className="ml-1.5 text-[9px] px-1 py-0 h-4"
               >
                 {alertCounts.total}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="deposits">Danh sách giao dịch</TabsTrigger>
+          <TabsTrigger value="mismatches" className="text-xs">
+            <GitCompareArrows className="size-3 mr-1" />
+            Mismatches
+          </TabsTrigger>
+          <TabsTrigger value="deposits" className="text-xs">Danh sách giao dịch</TabsTrigger>
         </TabsList>
 
         {/* ── Tab: Overview ───────────────────────────────────── */}
-        <TabsContent value="overview" className="space-y-6 mt-4">
-          <ReconKPICards kpis={kpis} loading={loading && !kpis} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {loading && !depositMethods.length ? (
-              <>
-                <SkeletonCard />
-                <SkeletonCard />
-              </>
-            ) : (
-              <>
-                <GlassCard>
-                  <CardHeader>
-                    <CardTitle className="text-base">Phân bổ phương thức nạp</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {depositMethods.map((m) => (
-                        <div key={m.method} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {m.method === "bank" ? (
-                              <Banknote className="size-4 text-blue-600" />
-                            ) : (
-                              <CreditCard className="size-4 text-purple-600" />
-                            )}
-                            <span className="text-sm font-medium">{m.label}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-semibold">{formatVND(m.todayAmount)}đ</div>
-                            <div className="text-xs text-muted-foreground">
-                              {m.todayCount} giao dịch hôm nay
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </GlassCard>
-
-                <GlassCard>
-                  <CardHeader>
-                    <CardTitle className="text-base">Giao dịch gần đây</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {recentTransactions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        Chưa có giao dịch nào
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {recentTransactions.map((t) => (
-                          <div
-                            key={`${t.type}-${t.id}`}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              {t.type === "bank" ? (
-                                <Banknote className="size-3.5 text-blue-600 shrink-0" />
-                              ) : (
-                                <CreditCard className="size-3.5 text-purple-600 shrink-0" />
-                              )}
-                              <span className="truncate">{t.user}</span>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="font-medium text-green-600">
-                                +{formatVND(t.amount)}đ
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </GlassCard>
-              </>
-            )}
-          </div>
-
+        <TabsContent value="overview" className="space-y-5 mt-4">
+          {/* ── Alert Banner (priority: top) ──────────────────── */}
           {alertCounts.total > 0 && (
             <GlassCard className="p-3 border-amber-500/20 bg-amber-500/10" variant="subtle">
-              <div className="flex items-center gap-3">
-              <AlertTriangle className="size-5 text-amber-500 shrink-0" />
-              <p className="text-sm text-amber-700 dark:text-amber-400">
-                <strong>{alertCounts.total}</strong> cảnh báo đang chờ xử lý
-                {alertCounts.critical > 0 && (
-                  <span>, trong đó <strong className="text-red-600">{alertCounts.critical}</strong> nghiêm trọng</span>
-                )}
-                . Chuyển sang tab <strong>Cảnh báo</strong> để xem chi tiết.
-              </p>
-            </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <AlertTriangle className="size-4 text-amber-500 shrink-0" />
+                  <p className="text-sm text-amber-700 dark:text-amber-400 truncate">
+                    <strong>{alertCounts.total}</strong> cảnh báo đang chờ xử lý
+                    {alertCounts.critical > 0 && (
+                      <span>, <strong className="text-red-600">{alertCounts.critical}</strong> nghiêm trọng</span>
+                    )}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-amber-700 dark:text-amber-400 hover:text-amber-800 shrink-0"
+                  onClick={() => setActiveTab("alerts")}
+                >
+                  <span className="hidden sm:inline">Xem chi tiết </span><ArrowRight className="size-3" />
+                </Button>
+              </div>
             </GlassCard>
           )}
+
+          {/* ── KPI Cards ─────────────────────────────────────── */}
+          <ReconKPICards kpis={kpis} loading={loading && !kpis} />
+
+          {/* ── Chart Filters + Charts ────────────────────────── */}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Phân tích</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={chartFilters.dateFrom}
+                    onChange={(e) => setChartFilters((p) => ({ ...p, dateFrom: e.target.value }))}
+                    className="h-7 text-xs border rounded px-2 bg-background"
+                  />
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <input
+                    type="date"
+                    value={chartFilters.dateTo}
+                    onChange={(e) => setChartFilters((p) => ({ ...p, dateTo: e.target.value }))}
+                    className="h-7 text-xs border rounded px-2 bg-background"
+                  />
+                </div>
+                <div className="w-[140px]">
+                  <FilterDropdown
+                    placeholder="Phương thức"
+                    value={chartFilters.type}
+                    onChange={(v) => setChartFilters((p) => ({ ...p, type: v }))}
+                    options={typeOptions}
+                  />
+                </div>
+                {(chartDateChanged || chartFilters.type !== "") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                    onClick={() => setChartFilters({
+                      dateFrom: DEFAULT_DATE_FROM,
+                      dateTo: DEFAULT_DATE_TO,
+                      type: "",
+                    })}
+                  >
+                    Đặt lại
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <ReconCharts
+              timeSeries={chartData?.timeSeries}
+              statusDistribution={chartData?.statusDistribution}
+              topDepositors={chartData?.topDepositors}
+              methodDistribution={chartData?.methodDistribution}
+              loading={chartLoading}
+            />
+          </div>
         </TabsContent>
 
         {/* ── Tab: Alerts ─────────────────────────────────────── */}
@@ -390,6 +423,11 @@ export default function ReconciliationPage() {
             counts={alertCounts}
             loading={false}
           />
+        </TabsContent>
+
+        {/* ── Tab: Mismatches ────────────────────────────────── */}
+        <TabsContent value="mismatches" className="mt-4">
+          <ReconMismatchPanel />
         </TabsContent>
 
         {/* ── Tab: Deposits ───────────────────────────────────── */}

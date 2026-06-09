@@ -540,7 +540,7 @@ const AccountDetailPage = () => {
                     >
                       <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 overflow-hidden relative">
                         {s.attributes?.discount && (
-                          <Badge className="absolute top-1.5 left-1.5 bg-red-500 text-[9px] px-1.5 py-0.5 h-auto border-0 z-10">-{s.attributes.discount}%</Badge>
+                          <Badge className="absolute top-1.5 left-1.5 bg-red-500 text-[11px] px-2 py-0.5 h-auto border-0 z-10">-{s.attributes.discount}%</Badge>
                         )}
                         {s.images?.[0] ? (
                           <img src={s.images[0]} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -548,22 +548,22 @@ const AccountDetailPage = () => {
                           <div className="flex items-center justify-center h-full"><span className="text-3xl">🎮</span></div>
                         )}
                       </div>
-                      <CardContent className="p-2.5 space-y-1">
-                        <p className="text-xs font-semibold line-clamp-1 group-hover:text-blue-600 transition-colors">{s.title}</p>
+                      <CardContent className="p-3 space-y-1">
+                        <p className="text-sm font-semibold line-clamp-1 group-hover:text-blue-600 transition-colors">{s.title}</p>
                         {s.attributes?.code && (
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><Tag className="size-2.5" /><span className="font-mono">{s.attributes.code}</span></div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-hidden"><Tag className="size-3 shrink-0" /><span className="font-mono truncate min-w-0">{s.attributes.code}</span></div>
                         )}
                         <div className="flex items-center justify-between">
                           {s.attributes?.originalPrice ? (
                             <div>
-                              <p className="text-[10px] text-muted-foreground line-through">{s.attributes.originalPrice.toLocaleString("vi-VN")}đ</p>
-                              <p className="text-xs font-bold text-red-600">{s.price.toLocaleString("vi-VN")}đ</p>
+                              <p className="text-xs text-muted-foreground line-through">{s.attributes.originalPrice.toLocaleString("vi-VN")}đ</p>
+                              <p className="text-sm font-bold text-red-600">{s.price.toLocaleString("vi-VN")}đ</p>
                             </div>
                           ) : (
-                            <p className="text-xs font-bold text-red-600">{s.price.toLocaleString("vi-VN")}đ</p>
+                            <p className="text-sm font-bold text-red-600">{s.price.toLocaleString("vi-VN")}đ</p>
                           )}
                           {s.rating && s.rating.count > 0 && (
-                            <span className="text-[10px] text-yellow-600 flex items-center gap-0.5"><Star className="size-2.5 fill-yellow-400 text-yellow-400" />{s.rating.avg}</span>
+                            <span className="text-xs text-yellow-600 flex items-center gap-0.5"><Star className="size-3 fill-yellow-400 text-yellow-400" />{s.rating.avg}</span>
                           )}
                         </div>
                       </CardContent>

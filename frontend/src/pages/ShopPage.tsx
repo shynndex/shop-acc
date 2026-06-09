@@ -387,25 +387,25 @@ const ShopPage = () => {
             </div>
 
             <CardContent className="p-3 space-y-2.5">
-              <h3 className="font-semibold text-xs sm:text-sm line-clamp-2 min-h-[32px] group-hover:text-blue-600 transition-colors">
+              <h3 className="font-semibold text-sm sm:text-base line-clamp-2 min-h-[40px] group-hover:text-blue-600 transition-colors">
                 {acc.title}
               </h3>
 
               {acc.attributes?.code && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/30 px-2 py-1 rounded w-fit">
-                  <Tag className="size-2.5" />
-                  <span className="font-mono">{acc.attributes.code}</span>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded overflow-hidden">
+                  <Tag className="size-3 shrink-0" />
+                  <span className="font-mono truncate min-w-0">{acc.attributes.code}</span>
                 </div>
               )}
 
               <div className="flex flex-wrap gap-1.5">
                 {acc.type && (
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-auto">
+                  <Badge variant="secondary" className="text-[11px] px-2 py-0.5 h-auto">
                     {acc.type}
                   </Badge>
                 )}
                 {!acc.isSold && (
-                  <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[9px] px-1.5 py-0 h-auto border-0">
+                  <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[11px] px-2 py-0.5 h-auto border-0">
                     Còn hàng
                   </Badge>
                 )}
@@ -414,17 +414,17 @@ const ShopPage = () => {
               <div className="flex items-end justify-between">
                 <div>
                   {acc.attributes?.originalPrice && (
-                    <p className="text-[10px] text-muted-foreground line-through">
+                    <p className="text-xs text-muted-foreground line-through">
                       {acc.attributes.originalPrice.toLocaleString("vi-VN")}đ
                     </p>
                   )}
-                  <p className="text-sm sm:text-base font-bold text-red-600">
+                  <p className="text-base sm:text-lg font-bold text-red-600">
                     {acc.price.toLocaleString("vi-VN")}đ
                   </p>
                 </div>
                 {acc.rating && acc.rating.count > 0 && (
-                  <span className="text-[10px] text-yellow-600 flex items-center gap-0.5">
-                    <Star className="size-2.5 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs text-yellow-600 flex items-center gap-0.5">
+                    <Star className="size-3 fill-yellow-400 text-yellow-400" />
                     {acc.rating.avg}
                   </span>
                 )}

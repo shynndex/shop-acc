@@ -83,7 +83,7 @@ function KpiCard({
     <GlassCard className="hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className={cn("size-9 sm:size-11 rounded-xl flex items-center justify-center shrink-0", colorClass)}>
               <Icon className="size-4 sm:size-5" />
             </div>
@@ -250,7 +250,7 @@ function WebhookFeed({ webhooks }: { webhooks: WebhookLog[] }) {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {webhooks.length === 0 ? (
         <EmptyState
           icon={Webhook}
@@ -391,12 +391,12 @@ function StatsSection({ stats }: { stats: PaymentStats }) {
         <CardHeader>
           <CardTitle className="text-base">Phân bố trạng thái</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           {statusEntries.map(([status, count]) => {
             const Icon = statusIcons[status] || Activity;
             const pct = Math.round((count / totalAll) * 100);
             return (
-              <div key={status} className="space-y-1">
+              <div key={status} className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <Icon className="size-4 text-muted-foreground" />
@@ -427,7 +427,7 @@ function StatsSection({ stats }: { stats: PaymentStats }) {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="size-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                     <Banknote className="size-4 text-blue-700 dark:text-blue-400" />
                   </div>
@@ -445,7 +445,7 @@ function StatsSection({ stats }: { stats: PaymentStats }) {
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="size-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                     <CreditCard className="size-4 text-purple-700 dark:text-purple-400" />
                   </div>
@@ -471,11 +471,11 @@ function StatsSection({ stats }: { stats: PaymentStats }) {
               <CardTitle className="text-base">Nhà mạng thẻ cào</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {stats.providerBreakdown.map((p) => (
                   <div key={p._id} className="flex items-center justify-between text-sm">
                     <span className="font-medium">{p._id}</span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <span className="text-muted-foreground">{p.count.toLocaleString("vi-VN")} GD</span>
                       <span className="font-semibold text-purple-600 dark:text-purple-400 w-24 text-right">
                         {formatVND(p.totalAmount)}đ

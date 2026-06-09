@@ -101,7 +101,7 @@ export default function AdminAnalyticsPage() {
 
       {recentActivities.length > 0 || isLoading ? (
         <GlassCard className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Hoạt động gần đây</h3>
+          <h3 className="text-lg font-semibold mb-5">Hoạt động gần đây</h3>
           {isLoading ? (
             <SkeletonList rows={5} />
           ) : (

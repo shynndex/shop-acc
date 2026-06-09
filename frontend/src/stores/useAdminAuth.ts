@@ -46,7 +46,7 @@ export const useAdminAuth = create<AuthState>()(
           });
           return response.admin;
         } catch (error: any) {
-          const message = error?.message || "Đăng nhập thất bại";
+          const message = error?.response?.data?.message || error?.message || "Đăng nhập thất bại";
           set({
             loading: false,
             error: message,

@@ -2,6 +2,7 @@ import CardDeposit from "../../models/client/deposits/CardDeposit.model.js";
 import BankDeposit from "../../models/client/deposits/BankDeposit.model.js";
 import Order from "../../models/Order.model.js";
 import User from "../../models/client/User.model.js";
+import MismatchAlert from "../../models/MismatchAlert.model.js";
 import {
   adaptBankDeposit,
   adaptCardDeposit,
@@ -382,6 +383,8 @@ export const getReconciliationAlerts = asyncHandler(async (req, res) => {
   const now = new Date();
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000);
   const oneHourAgo = new Date(now - 60 * 60 * 1000);
+  const fifteenMinAgo = new Date(now - 15 * 60 * 1000);
+  const todayStart = startOfDay(now);
 
   const alerts = [];
 
@@ -458,6 +461,148 @@ export const getReconciliationAlerts = asyncHandler(async (req, res) => {
     });
   }
 
+  // ── 4. Bank amount mismatch (expectedAmount ≠ actual amount) ────
+  const bankMismatched = await BankDeposit.find({
+    status: "PAID",
+    expectedAmount: { $gt: 0 },
+  })
+    .populate("user", "username email")
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
+
+  for (const d of bankMismatched) {
+    if (d.amount !== d.expectedAmount) {
+      alerts.push({
+        type: "bank_amount_mismatch",
+        severity: d.amount < d.expectedAmount ? "critical" : "warning",
+        depositId: d._id,
+        user: d.user?.username || "unknown",
+        referenceCode: d.referenceCode,
+        expectedAmount: d.expectedAmount,
+        receivedAmount: d.amount,
+        createdAt: d.createdAt,
+        message: `Chuyển khoản ${d.referenceCode}: khai báo ${d.expectedAmount?.toLocaleString()}đ, thực nhận ${d.amount?.toLocaleString()}đ`,
+      });
+    }
+  }
+
+  // ── 5. Order-deposit status mismatch ────────────────────────────
+  const staleOrders = await Order.aggregate([
+    {
+      $lookup: {
+        from: "bankdeposits",
+        localField: "_id",
+        foreignField: "order",
+        as: "depositInfo",
+      },
+    },
+    { $unwind: "$depositInfo" },
+    {
+      $match: {
+        "depositInfo.status": "PAID",
+        status: "pending",
+        createdAt: { $lte: fifteenMinAgo },
+      },
+    },
+    { $limit: 20 },
+  ]);
+
+  for (const order of staleOrders) {
+    alerts.push({
+      type: "order_status_mismatch",
+      severity: "warning",
+      depositId: order.depositInfo._id,
+      orderId: order._id,
+      user: order.user?.toString(),
+      createdAt: order.createdAt,
+      message: `Order ${order.transactionId} chưa completed dù deposit đã PAID`,
+    });
+  }
+
+  // ── 6. Abnormal deposits (anti-fraud) ──────────────────────────
+  const DAILY_LIMIT = 500_000;
+  const PENDING_THRESHOLD = 2;
+
+  // 6a. Users with total deposit > daily limit today
+  const heavyDepositors = await BankDeposit.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: todayStart },
+        status: { $in: ["PAID", "PENDING"] },
+      },
+    },
+    {
+      $group: {
+        _id: "$user",
+        totalAmount: { $sum: "$amount" },
+        count: { $sum: 1 },
+      },
+    },
+    { $match: { totalAmount: { $gt: DAILY_LIMIT } } },
+    { $limit: 10 },
+  ]);
+
+  // Batch lookup users for abnormal alerts
+  const allAbnormalUserIds = [
+    ...heavyDepositors.map((d) => d._id),
+  ];
+
+  // 6b. Users with >= threshold PENDING deposits in last 1h
+  const heavyPending = await BankDeposit.aggregate([
+    {
+      $match: {
+        status: "PENDING",
+        createdAt: { $gte: oneHourAgo },
+      },
+    },
+    {
+      $group: {
+        _id: "$user",
+        count: { $sum: 1 },
+      },
+    },
+    { $match: { count: { $gte: PENDING_THRESHOLD } } },
+    { $limit: 10 },
+  ]);
+
+  for (const dep of heavyPending) {
+    allAbnormalUserIds.push(dep._id);
+  }
+
+  // Single batch query for all abnormal users
+  const abnormalUsers = await User.find({ _id: { $in: allAbnormalUserIds } })
+    .select("username")
+    .lean();
+  const abnormalUserMap = {};
+  for (const u of abnormalUsers) {
+    abnormalUserMap[u._id.toString()] = u.username;
+  }
+
+  for (const dep of heavyDepositors) {
+    const username = abnormalUserMap[dep._id.toString()] || "unknown";
+    alerts.push({
+      type: "abnormal_deposit",
+      severity: "warning",
+      userId: dep._id,
+      user: username,
+      createdAt: now,
+      message: `User ${username} nạp ${dep.totalAmount?.toLocaleString()}đ hôm nay (vượt hạn ${DAILY_LIMIT.toLocaleString()}đ)`,
+    });
+  }
+
+  for (const dep of heavyPending) {
+    const username = abnormalUserMap[dep._id.toString()] || "unknown";
+    alerts.push({
+      type: "abnormal_pending",
+      severity: "warning",
+      userId: dep._id,
+      user: username,
+      createdAt: now,
+      message: `User ${username} có ${dep.count} giao dịch PENDING trong 1h`,
+    });
+  }
+
   // Sort by severity (critical first) then by newest
   alerts.sort((a, b) => {
     const severityOrder = { critical: 0, warning: 1, info: 2 };
@@ -476,4 +621,222 @@ export const getReconciliationAlerts = asyncHandler(async (req, res) => {
       alerts,
     },
   });
+});
+
+// ── Chart Data ──────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/reconciliation/chart-data
+ *
+ * Query params: dateFrom, dateTo, type (bank|card|all)
+ * Returns aggregated data for charts: timeSeries, statusDistribution,
+ * topDepositors, methodDistribution
+ */
+export const getChartData = asyncHandler(async (req, res) => {
+  const { dateFrom, dateTo, type } = req.query;
+  const dateRange = getDateRange(dateFrom, dateTo);
+  const now = new Date();
+  const defaultFrom = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const from = dateRange?.$gte || defaultFrom;
+  const to = dateRange?.$lte || now;
+
+  // ── Time series: deposits by day ──────────────────────────────
+  const bankMatch = { createdAt: { $gte: from, $lte: to } };
+  const cardMatch = { createdAt: { $gte: from, $lte: to } };
+
+  const bankTimeSeries = type !== "card"
+    ? await BankDeposit.aggregate([
+        { $match: { ...bankMatch, status: "PAID" } },
+        { $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            amount: { $sum: "$amount" },
+            count: { $sum: 1 },
+        }},
+        { $project: { _id: 0, date: "$_id", amount: 1, count: 1 } },
+        { $sort: { date: 1 } },
+      ])
+    : [];
+
+  const cardTimeSeries = type !== "bank"
+    ? await CardDeposit.aggregate([
+        { $match: { ...cardMatch, status: "SUCCESS" } },
+        { $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            amount: { $sum: "$receivedAmount" },
+            count: { $sum: 1 },
+        }},
+        { $project: { _id: 0, date: "$_id", amount: 1, count: 1 } },
+        { $sort: { date: 1 } },
+      ])
+    : [];
+
+  // Merge time series
+  const dateMap = {};
+  for (const item of bankTimeSeries) {
+    if (!dateMap[item.date]) dateMap[item.date] = { date: item.date, bank: 0, card: 0, total: 0 };
+    dateMap[item.date].bank = item.amount;
+    dateMap[item.date].total += item.amount;
+  }
+  for (const item of cardTimeSeries) {
+    if (!dateMap[item.date]) dateMap[item.date] = { date: item.date, bank: 0, card: 0, total: 0 };
+    dateMap[item.date].card = item.amount;
+    dateMap[item.date].total += item.amount;
+  }
+  const timeSeries = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+
+  // ── Status distribution ────────────────────────────────────────
+  const [bankStatuses, cardStatuses] = await Promise.all([
+    BankDeposit.aggregate([
+      { $match: bankMatch },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]),
+    CardDeposit.aggregate([
+      { $match: cardMatch },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const statusDist = {};
+  for (const s of [...bankStatuses, ...cardStatuses]) {
+    statusDist[s._id] = (statusDist[s._id] || 0) + s.count;
+  }
+
+  // ── Top depositors ─────────────────────────────────────────────
+  const [bankTop, cardTop] = await Promise.all([
+    type !== "card"
+      ? BankDeposit.aggregate([
+          { $match: { ...bankMatch, status: "PAID" } },
+          { $group: { _id: "$user", totalAmount: { $sum: "$amount" }, count: { $sum: 1 } } },
+          { $sort: { totalAmount: -1 } },
+          { $limit: 10 },
+        ])
+      : [],
+    type !== "bank"
+      ? CardDeposit.aggregate([
+          { $match: { ...cardMatch, status: "SUCCESS" } },
+          { $group: { _id: "$user", totalAmount: { $sum: "$receivedAmount" }, count: { $sum: 1 } } },
+          { $sort: { totalAmount: -1 } },
+          { $limit: 10 },
+        ])
+      : [],
+  ]);
+
+  // Merge top depositors
+  const userMap = {};
+  for (const item of [...bankTop, ...cardTop]) {
+    const uid = item._id?.toString();
+    if (!userMap[uid]) userMap[uid] = { userId: uid, totalAmount: 0, transactionCount: 0 };
+    userMap[uid].totalAmount += item.totalAmount;
+    userMap[uid].transactionCount += item.count;
+  }
+  const topDepositorsRaw = Object.values(userMap)
+    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .slice(0, 10);
+
+  // Populate usernames
+  const topUserIds = topDepositorsRaw.map((d) => d.userId);
+  const topUsers = await User.find({ _id: { $in: topUserIds } })
+    .select("username")
+    .lean();
+  const userMapLookup = {};
+  for (const u of topUsers) {
+    userMapLookup[u._id.toString()] = u.username;
+  }
+  const topDepositors = topDepositorsRaw.map((d) => ({
+    ...d,
+    username: userMapLookup[d.userId] || "unknown",
+  }));
+
+  // ── Method distribution ────────────────────────────────────────
+  const [bankTotalAgg, cardTotalAgg] = await Promise.all([
+    type !== "card"
+      ? BankDeposit.aggregate([
+          { $match: { ...bankMatch, status: "PAID" } },
+          { $group: { _id: null, amount: { $sum: "$amount" }, count: { $sum: 1 } } },
+        ])
+      : [],
+    type !== "bank"
+      ? CardDeposit.aggregate([
+          { $match: { ...cardMatch, status: "SUCCESS" } },
+          { $group: { _id: null, amount: { $sum: "$receivedAmount" }, count: { $sum: 1 } } },
+        ])
+      : [],
+  ]);
+
+  const methodDistribution = [
+    {
+      method: "bank",
+      label: "Chuyển khoản",
+      amount: bankTotalAgg[0]?.amount || 0,
+      count: bankTotalAgg[0]?.count || 0,
+    },
+    {
+      method: "card",
+      label: "Thẻ cào",
+      amount: cardTotalAgg[0]?.amount || 0,
+      count: cardTotalAgg[0]?.count || 0,
+    },
+  ];
+
+  res.json({
+    success: true,
+    data: { timeSeries, statusDistribution: statusDist, topDepositors, methodDistribution },
+  });
+});
+
+// ── Mismatches ──────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/reconciliation/mismatches
+ * Query params: page, limit, status (pending|resolved), type
+ */
+export const getMismatches = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20, status, type } = req.query;
+  const filter = {};
+  if (status) filter.status = status;
+  if (type) filter.type = type;
+
+  const [mismatches, totalItems] = await Promise.all([
+    MismatchAlert.find(filter)
+      .populate("user", "username email")
+      .populate("deposit")
+      .populate("order")
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .lean(),
+    MismatchAlert.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(totalItems / Number(limit));
+  const stats = await MismatchAlert.aggregate([
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+  const statsMap = { pending: 0, resolved: 0 };
+  for (const s of stats) statsMap[s._id] = s.count;
+
+  res.json({
+    success: true,
+    data: { mismatches, totalPages, currentPage: +page, totalItems, stats: statsMap },
+  });
+});
+
+/**
+ * PATCH /api/admin/reconciliation/mismatches/:id/resolve
+ */
+export const resolveMismatch = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.admin?._id;
+
+  const alert = await MismatchAlert.findByIdAndUpdate(
+    id,
+    { status: "resolved", resolvedAt: new Date(), resolvedBy: adminId },
+    { new: true },
+  );
+
+  if (!alert) {
+    return res.status(404).json({ success: false, message: "Không tìm thấy alert" });
+  }
+
+  res.json({ success: true, message: "Đã xử lý alert", data: alert });
 });

@@ -76,7 +76,26 @@ export const getDashboard = asyncHandler(async (req, res) => {
         revenue: { $sum: "$amount" },
       },
     },
-    { $project: { _id: 0, game: "$_id", count: 1, revenue: 1 } },
+    {
+      $project: {
+        _id: 0,
+        game: "$_id",
+        count: 1,
+        revenue: 1,
+        label: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$_id", "lien-quan"] }, then: "Liên Quân Mobile" },
+              { case: { $eq: ["$_id", "lien-minh"] }, then: "LMHT" },
+              { case: { $eq: ["$_id", "valorant"] }, then: "Valorant" },
+              { case: { $eq: ["$_id", "free-fire"] }, then: "Free Fire" },
+              { case: { $eq: ["$_id", "khac"] }, then: "Khác" },
+            ],
+            default: "$_id",
+          },
+        },
+      },
+    },
     { $sort: { revenue: -1 } },
   ]);
 

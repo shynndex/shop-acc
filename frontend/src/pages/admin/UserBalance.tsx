@@ -231,9 +231,9 @@ function AdjustBalanceDialog({
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Amount type toggle */}
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button
                 type="button"
                 variant={isCredit ? "default" : "outline"}
@@ -568,7 +568,7 @@ export default function UserBalancePage() {
             </div>
           ) : (
             /* Selected user info */
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
               <div className="flex items-center gap-4">
                 <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
                   <User className="size-6 text-primary" />

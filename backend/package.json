@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "src/server.js",
   "scripts": {
-    "setup": "node script/setup.js",
-    "seed:admin": "node script/seedAdmin.js",
+    "seed:admin": "node src/script/seedAdmin.js",
+    "reset:admin": "node src/script/resetAdminPassword.js",
     "test": "vitest run",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"

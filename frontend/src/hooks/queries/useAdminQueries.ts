@@ -51,6 +51,8 @@ export const queryKeys = {
     summary: ["reconciliation", "summary"] as const,
     alerts: ["reconciliation", "alerts"] as const,
     deposits: (params?: Record<string, any>) => ["reconciliation", "deposits", params] as const,
+    chartData: (params?: Record<string, any>) => ["reconciliation", "chartData", params] as const,
+    mismatches: (params?: Record<string, any>) => ["reconciliation", "mismatches", params] as const,
   },
   userBalance: {
     search: (q: string) => ["userBalance", "search", q] as const,
@@ -254,6 +256,31 @@ export function useReconDepositsQuery(params?: Record<string, any>) {
   return useQuery({
     queryKey: queryKeys.reconciliation.deposits(params),
     queryFn: () => reconciliationService.deposits(params),
+  });
+}
+
+export function useReconChartDataQuery(params?: Record<string, any>) {
+  return useQuery({
+    queryKey: queryKeys.reconciliation.chartData(params),
+    queryFn: () => reconciliationService.chartData(params),
+  });
+}
+
+export function useReconMismatchesQuery(params?: Record<string, any>) {
+  return useQuery({
+    queryKey: queryKeys.reconciliation.mismatches(params),
+    queryFn: () => reconciliationService.mismatches(params),
+  });
+}
+
+export function useResolveMismatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => reconciliationService.resolveMismatch(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.reconciliation.mismatches() });
+      qc.invalidateQueries({ queryKey: queryKeys.reconciliation.summary });
+    },
   });
 }
 

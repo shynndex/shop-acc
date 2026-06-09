@@ -57,7 +57,7 @@ function KpiCard({
     <GlassCard className="hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div
               className={cn(
                 "size-8 sm:size-10 rounded-lg flex items-center justify-center shrink-0",
@@ -177,11 +177,11 @@ function GameDistributionCard({
         <CardTitle className="text-base">Phân bố game</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {data.map((item) => {
             const pct = totalCount > 0 ? (item.count / totalCount) * 100 : 0;
             return (
-              <div key={item.game} className="space-y-1">
+              <div key={item.game} className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">
                     {gameLabels[item.game] || item.game}
@@ -243,14 +243,14 @@ function RecentActivity({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {activities.map((activity) => {
         const Icon = typeIcons[activity.type] || Clock;
         const colorClass = typeColors[activity.type] || "text-muted-foreground bg-muted/50";
         return (
           <div
             key={activity.id}
-            className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent transition-colors"
+            className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
           >
             <div
               className={cn(
@@ -414,7 +414,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="text-base">Truy cập nhanh</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {quickActions.map((action) => (
               <Button
                 key={action.href}

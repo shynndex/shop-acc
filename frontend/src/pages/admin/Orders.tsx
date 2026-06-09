@@ -222,7 +222,7 @@ function OrderDetailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex items-center justify-between">
             <Badge variant="outline" className={cn("font-medium text-sm px-3 py-1", statusColors[order.status] || "")}>
               {statusLabels[order.status] || order.status}
@@ -235,7 +235,7 @@ function OrderDetailDialog({
           <Separator />
 
           <div>
-            <h4 className="text-xs font-medium text-muted-foreground mb-1">Người mua</h4>
+            <h4 className="text-xs font-medium text-muted-foreground mb-1.5">Người mua</h4>
             <p className="text-sm font-medium">
               {order.user?.displayName || order.user?.username || "N/A"}
             </p>
@@ -243,7 +243,7 @@ function OrderDetailDialog({
           </div>
 
           <div>
-            <h4 className="text-xs font-medium text-muted-foreground mb-1">Tài khoản</h4>
+            <h4 className="text-xs font-medium text-muted-foreground mb-1.5">Tài khoản</h4>
             <p className="text-sm font-medium">{order.account?.title || "N/A"}</p>
             <p className="text-xs text-muted-foreground">
               Game: {order.account?.game} — Giá: {formatVND(order.account?.price || 0)}đ
@@ -251,7 +251,7 @@ function OrderDetailDialog({
           </div>
 
           <div>
-            <h4 className="text-xs font-medium text-muted-foreground mb-1">Thanh toán</h4>
+            <h4 className="text-xs font-medium text-muted-foreground mb-1.5">Thanh toán</h4>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="gap-1">
                 {paymentMethodIcons[order.paymentMethod]}
@@ -316,7 +316,7 @@ function StatsCard({
   return (
     <GlassCard className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
       <CardContent className="pt-6">
-        <div className="flex items-center gap-3">            <div className={cn("size-8 sm:size-10 rounded-lg flex items-center justify-center shrink-0", colorClass)}>
+        <div className="flex items-center gap-4">            <div className={cn("size-8 sm:size-10 rounded-lg flex items-center justify-center shrink-0", colorClass)}>
             <Icon className="size-4 sm:size-5" />
           </div>
           <div>
