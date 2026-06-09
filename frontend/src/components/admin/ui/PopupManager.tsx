@@ -29,6 +29,7 @@ import {
   Clock,
   Megaphone,
   GripVertical,
+  Eye,
 } from "lucide-react";
 import {
   DndContext,
@@ -75,12 +76,14 @@ const SortablePopupRow = ({
   onEdit,
   onDelete,
   onToggle,
+  onPreview,
   getTypeBadge,
 }: {
   popup: Popup;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: (id: string) => void;
+  onPreview: (popup: Popup) => void;
   getTypeBadge: (type: PopupType) => React.ReactNode;
 }) => {
   const {
@@ -150,6 +153,15 @@ const SortablePopupRow = ({
       </td>
       <td className="p-3 text-right">
         <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={() => onPreview(popup)}
+            title="Xem trước"
+          >
+            <Eye className="size-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -466,6 +478,7 @@ const PopupManager = () => {
   const reorderMutation = useReorderPopups();
   const [showForm, setShowForm] = useState(false);
   const [editingPopup, setEditingPopup] = useState<Popup | null>(null);
+  const [previewPopup, setPreviewPopup] = useState<Popup | null>(null);
 
   const popups: Popup[] = data?.popups || [];
 
@@ -624,18 +637,18 @@ const PopupManager = () => {
                   items={popups.map((p) => p._id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {popups.map((popup) => (
-                    <SortablePopupRow
-                      key={popup._id}
-                      popup={popup}
-                      getTypeBadge={getTypeBadge}
-                      onEdit={() => {
-                        setEditingPopup(popup);
-                        setShowForm(true);
-                      }}
-                      onDelete={() => handleDelete(popup)}
-                      onToggle={() => handleToggle(popup._id)}
-                    />
+                  {popups.map((popup) => (                      <SortablePopupRow
+                        key={popup._id}
+                        popup={popup}
+                        getTypeBadge={getTypeBadge}
+                        onEdit={() => {
+                          setEditingPopup(popup);
+                          setShowForm(true);
+                        }}
+                        onDelete={() => handleDelete(popup)}
+                        onToggle={() => handleToggle(popup._id)}
+                        onPreview={(p) => setPreviewPopup(p)}
+                      />
                   ))}
                 </SortableContext>
               </tbody>
@@ -650,6 +663,81 @@ const PopupManager = () => {
         initialData={editingPopup}
         onSuccess={() => {}}
       />
+
+      {/* ─── Preview Dialog ─── */}
+      <Dialog open={!!previewPopup} onOpenChange={() => setPreviewPopup(null)}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="text-sm">Xem trước popup</DialogTitle>
+            <DialogDescription>Preview sẽ hiển thị giống trên client</DialogDescription>
+          </DialogHeader>
+          {previewPopup && (
+            <div className="p-4 pt-2">
+              {/* Client-like preview */}
+              <div className="relative rounded-xl border bg-background shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {/* Dim overlay simulation */}
+                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                <div className="relative z-10">
+                  {previewPopup.type === "promotion" && previewPopup.imageUrl ? (
+                    <div className="relative">
+                      <img
+                        src={previewPopup.imageUrl}
+                        alt={previewPopup.title}
+                        className="w-full aspect-video object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <h3 className="text-white font-bold text-base mb-1">{previewPopup.title}</h3>
+                        {previewPopup.ctaText && (
+                          <button className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-sm font-medium">
+                            {previewPopup.ctaText}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        {previewPopup.type === "promotion" ? (
+                          <span className="text-lg">🎉</span>
+                        ) : (
+                          <span className="text-lg">🔔</span>
+                        )}
+                        <h3 className="font-bold text-base">{previewPopup.title}</h3>
+                      </div>
+                      {previewPopup.content && (
+                        <div
+                          className="prose prose-sm dark:prose-invert max-w-none text-sm text-muted-foreground"
+                          dangerouslySetInnerHTML={{ __html: previewPopup.content }}
+                        />
+                      )}
+                      {previewPopup.ctaText && (
+                        <button className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">
+                          {previewPopup.ctaText}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Meta info */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Badge variant="outline" className="text-xs">
+                  {previewPopup.type === "promotion" ? "🎉 Khuyến mãi" : "🔔 Thông báo"}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {previewPopup.triggerType === "timeout" ? `⏱️ ${previewPopup.triggerDelay}s` : "🖱️ Click"}
+                </Badge>
+                {previewPopup.displayPages.map((page) => (
+                  <Badge key={page} variant="outline" className="text-xs">
+                    📄 {page === "all" ? "Tất cả" : page}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

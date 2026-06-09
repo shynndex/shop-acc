@@ -189,9 +189,13 @@ const AccountSkeleton = ({ count = 4 }: { count?: number }) => (
         <div className="relative overflow-hidden rounded-xl">
           <Skeleton className="aspect-[4/3] w-full" />
           <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <Skeleton className="absolute top-1.5 left-1.5 h-4 w-8 rounded-full" />
         </div>
         <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3 w-1/2" />
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-8" />
+        </div>
       </div>
     ))}
   </div>
@@ -301,16 +305,39 @@ const GameSectionBlock = ({
 const SectionSkeleton = () => (
   <div className="space-y-6">
     {Array.from({ length: 2 }).map((_, i) => (
-      <div key={i} className="space-y-4">
-        <Skeleton className="h-10 w-72" />
+      <div key={i} className="space-y-4 animate-in fade-in duration-400" style={{ animationDelay: `${i * 120}ms` }}>
+        <div className="flex items-center justify-between border-b-2 pb-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+          <Skeleton className="h-8 w-24 rounded-md" />
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, j) => (
-            <Skeleton key={j} className="aspect-video w-full rounded-xl" />
+            <div key={j} className="space-y-2">
+              <Skeleton className="aspect-video w-full rounded-xl" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="flex justify-between">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+            </div>
           ))}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, j) => (
-            <Skeleton key={j} className="h-36 w-full rounded-xl" />
+            <div key={j} className="space-y-2">
+              <div className="relative overflow-hidden rounded-xl">
+                <Skeleton className="aspect-[4/3] w-full" />
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              </div>
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
           ))}
         </div>
       </div>

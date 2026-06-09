@@ -526,7 +526,10 @@ const DepositDialog = ({ trigger }: DepositDialogProps) => {
               {selectedMethod === "card" && (
                 <GradientButton
                   className="flex-1 h-11"
-                  onClick={() => goToStep("payment")}
+                  onClick={() => {
+                    setCardAmount(getAmount().toString());
+                    goToStep("payment");
+                  }}
                 >
                   Nhập thông tin thẻ <ChevronRight className="size-4 ml-1" />
                 </GradientButton>

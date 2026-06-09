@@ -121,10 +121,10 @@ export function LoginForm({
       {...props}
     >
       <GlassCard className="overflow-hidden p-0 border-0 shadow-xl">
-        <CardContent className="grid p-0 md:grid-cols-2 w-full">
-          <form className="glass-strong p-6 sm:p-8" onSubmit={handleSubmit}>
+        <CardContent className="grid p-0 md:grid-cols-2 w-full bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-700">
+          <form className="px-8 sm:px-10 py-12 sm:py-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl" onSubmit={handleSubmit}>
             <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">                  <h1 className="text-2xl font-bold">Đăng nhập</h1>
+              <div className="flex flex-col items-center gap-3 text-center mb-2">                  <h1 className="text-3xl font-bold">Đăng nhập</h1>
                 <p className="text-sm text-muted-foreground">
                   Vui lòng đăng nhập để sử dụng dịch vụ của chúng tôi
                 </p>
@@ -135,7 +135,7 @@ export function LoginForm({
                     name="identifier"
                     type="text"
                     placeholder="Email hoặc tên đăng nhập"
-                    className="border-border/50 focus-visible:ring-blue-500 bg-muted/20"
+                    className="border-border/50 focus-visible:ring-blue-500 bg-muted/20 h-12"
                   required
                   disabled={loading}
                   value={formData.identifier}
@@ -157,7 +157,7 @@ export function LoginForm({
                   <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  className="border-border/50 focus-visible:ring-blue-500 pr-10 bg-muted/20"
+                  className="border-border/50 focus-visible:ring-blue-500 pr-10 bg-muted/20 h-12"
                     value={formData.password}
                     onChange={handleChange}
                     required
@@ -211,7 +211,7 @@ export function LoginForm({
               <Field>
                 <GradientButton
                   type="submit"
-                  className="w-full h-11"
+                  className="w-full h-12"
                   disabled={loading}
                 >
                   {loading ? (
@@ -264,7 +264,7 @@ export function LoginForm({
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="relative hidden bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-700 md:flex flex-col items-center justify-center p-8 text-white overflow-hidden">
+          <div className="relative hidden md:flex flex-col items-center justify-center px-8 sm:px-10 py-12 sm:py-16 text-white overflow-hidden">
             <div className="text-center space-y-4 z-10">
               <div className="text-5xl mb-4">🎮</div>
               <h2 className="text-xl font-bold">Chào mừng trở lại!</h2>
@@ -283,17 +283,6 @@ export function LoginForm({
           </div>
         </CardContent>
       </GlassCard>
-      <FieldDescription className="px-6 text-center text-xs">
-        Khi đăng nhập, bạn đồng ý với{" "}
-        <a className="text-blue-600 hover:underline" href="#">
-          Điều khoản dịch vụ
-        </a>{" "}
-        và{" "}
-        <a className="text-blue-600 hover:underline" href="#">
-          Chính sách quyền riêng tư
-        </a>
-        .
-      </FieldDescription>
     </div>
   );
 }

@@ -18,7 +18,11 @@ const AdminAuditLogs = lazy(() => import("@/pages/admin/AuditLogs"));
 const AdminOrders = lazy(() => import("@/pages/admin/Orders"));
 const AdminAnalytics = lazy(() => import("@/pages/admin/Analytics"));
 const AdminPaymentMonitoring = lazy(() => import("@/pages/admin/PaymentMonitoring"));
-const AdminConfig = lazy(() => import("@/pages/admin/Config"));
+const ConfigLayout = lazy(() => import("@/pages/admin/config/ConfigLayout"));
+const GeneralSettingsPage = lazy(() => import("@/pages/admin/config/GeneralSettingsPage"));
+const BankAccountsPage = lazy(() => import("@/pages/admin/config/BankAccountsPage"));
+const CardProvidersPage = lazy(() => import("@/pages/admin/config/CardProvidersPage"));
+const UiManagementPage = lazy(() => import("@/pages/admin/config/UiManagementPage"));
 const AdminProfile = lazy(() => import("@/pages/admin/Profile"));
 
 /**
@@ -54,11 +58,13 @@ export const adminRoutes = (
         <Route path="orders" element={withErrorBoundary(AdminOrders)} />
         <Route path="analytics" element={withErrorBoundary(AdminAnalytics)} />
         <Route path="payment-monitoring" element={withErrorBoundary(AdminPaymentMonitoring)} />
-        <Route path="config" element={withErrorBoundary(AdminConfig)} />
-        <Route path="config/general" element={withErrorBoundary(AdminConfig)} />
-        <Route path="config/banks" element={withErrorBoundary(AdminConfig)} />
-        <Route path="config/cards" element={withErrorBoundary(AdminConfig)} />
-        <Route path="config/ui" element={withErrorBoundary(AdminConfig)} />
+        <Route path="config" element={<ErrorBoundary onError={(error) => console.error("[Admin Route Error]:", error)}><ConfigLayout /></ErrorBoundary>}>
+          <Route index element={withErrorBoundary(GeneralSettingsPage)} />
+          <Route path="general" element={withErrorBoundary(GeneralSettingsPage)} />
+          <Route path="banks" element={withErrorBoundary(BankAccountsPage)} />
+          <Route path="cards" element={withErrorBoundary(CardProvidersPage)} />
+          <Route path="ui" element={withErrorBoundary(UiManagementPage)} />
+        </Route>
         <Route path="admins" element={withErrorBoundary(AdminAdmins)} />
         <Route path="profile" element={withErrorBoundary(AdminProfile)} />
       </Route>

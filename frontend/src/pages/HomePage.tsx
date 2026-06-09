@@ -58,13 +58,13 @@ const MainBanner = () => {
   );
 
   if (isLoading) {
-    return <Skeleton className="h-[250px] md:h-[360px] w-full rounded-2xl" />;
+    return <Skeleton className="h-[375px] md:h-[540px] w-full rounded-2xl" />;
   }
 
   // Fallback banner
   if (banners.length === 0) {
     return (
-      <GlassCard className="relative overflow-hidden h-[250px] md:h-[360px] border-0 p-0" gradientBorder>
+      <GlassCard className="relative overflow-hidden h-[375px] md:h-[540px] border-0 p-0" gradientBorder>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-700 rounded-2xl">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-3xl" />
@@ -94,7 +94,7 @@ const MainBanner = () => {
 
   return (
     <div
-      className="relative overflow-hidden h-[250px] md:h-[360px] rounded-2xl group"
+      className="relative overflow-hidden h-[375px] md:h-[540px] rounded-2xl group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -193,7 +193,14 @@ const GameCategories = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-36 w-full rounded-xl" />
+          <div key={i} className="space-y-2 animate-in fade-in duration-300" style={{ animationDelay: `${i * 60}ms` }}>
+            <Skeleton className="aspect-[4/3] w-full rounded-xl" />
+            <Skeleton className="h-3 w-3/4 mx-1" />
+            <div className="flex items-center justify-between px-1">
+              <Skeleton className="h-4 w-10 rounded-full" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          </div>
         ))}
       </div>
     );
@@ -267,7 +274,7 @@ const PopularProducts = () => {
   if (popularLoading || popularAccounts.length === 0) return null;
 
   return (
-    <section>
+    <section id="popular" className="scroll-mt-20">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -358,9 +365,9 @@ const PopularProducts = () => {
    ════════════════════════════════════════════════════════════════════ */
 export default function HomePage() {
   return (
-    <div className="py-4 space-y-4 sm:space-y-6">
+    <div className="py-4 space-y-10 sm:space-y-14">
       {/* ─── Top Section: Carousel + Podium side-by-side ─── */}
-      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6">
+      <section id="hero" className="scroll-mt-20 flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6">
         {/* Carousel — 60% on desktop */}
         <div className="flex-1 min-w-0 lg:w-3/5">
           <MainBanner />
@@ -370,13 +377,13 @@ export default function HomePage() {
         <div className="lg:w-2/5 shrink-0">
           <TopDepositorsPodium />
         </div>
-      </div>
+      </section>
 
       {/* ─── Scrolling Marquee ─── */}
       <ScrollingMarquee />
 
       {/* ─── Game Categories ─── */}
-      <section>
+      <section id="categories" className="scroll-mt-20">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Gamepad2 className="size-4 sm:size-5 text-blue-600" />
@@ -392,7 +399,9 @@ export default function HomePage() {
       <PopularProducts />
 
       {/* ─── Game Product Sections ─── */}
-      <GameProductSections />
+      <section id="products" className="scroll-mt-20">
+        <GameProductSections />
+      </section>
 
       {/* ─── Popup Renderer ─── */}
       <PopupRenderer currentPage="home" />
