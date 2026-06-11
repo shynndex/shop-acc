@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { useSiteConfig } from "@/hooks/usePublicSiteConfig";
 import { cn, formatVND } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,6 +140,10 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut, isAuthenticated } = useAuthStore();
+  const { shopName, siteConfig } = useSiteConfig();
+
+  const [logoFailed, setLogoFailed] = useState(false);
+  const hasLogo = siteConfig?.logo && !logoFailed;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -203,9 +208,18 @@ const Header = () => {
               <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
                 <SheetHeader className="p-4 pb-3 border-b">
                   <SheetTitle>
-                    <span className="text-xl font-bold text-gradient-brand">
-                      ShopSam
-                    </span>
+                    {hasLogo ? (
+                      <img
+                        src={siteConfig.logo}
+                        alt={shopName}
+                        className="h-7 w-auto max-w-[120px] object-contain"
+                        onError={() => setLogoFailed(true)}
+                      />
+                    ) : (
+                      <span className="text-xl font-bold text-gradient-brand">
+                        {shopName}
+                      </span>
+                    )}
                   </SheetTitle>
                 </SheetHeader>
 
@@ -330,11 +344,20 @@ const Header = () => {
               </SheetContent>
             </Sheet>
 
-            {/* Logo */}
+            {/* Logo — image from SiteConfig, fallback to text */}
             <Link to="/" className="flex items-center gap-2 shrink-0">
-              <span className="text-xl sm:text-2xl font-bold text-gradient-brand">
-                ShopSam
-              </span>
+              {hasLogo ? (
+                <img
+                  src={siteConfig.logo}
+                  alt={shopName}
+                  className="h-8 sm:h-9 w-auto max-w-[140px] object-contain"
+                  onError={() => setLogoFailed(true)}
+                />
+              ) : (
+                <span className="text-xl sm:text-2xl font-bold text-gradient-brand">
+                  {shopName}
+                </span>
+              )}
             </Link>
           </div>
 

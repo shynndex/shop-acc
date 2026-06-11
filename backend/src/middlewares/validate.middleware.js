@@ -19,12 +19,12 @@ export function validate(schema, source = "body") {
     const result = schema.safeParse(dataToValidate);
 
     if (!result.success) {
-      const firstError = result.error.errors[0];
+      const firstError = result.error.issues[0];
       const message = firstError?.message || "Dữ liệu không hợp lệ";
 
       throw new AppError(message, 400, {
         field: firstError?.path?.join(".") || source,
-        details: result.error.errors,
+        details: result.error.issues,
       });
     }
 

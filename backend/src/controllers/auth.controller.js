@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import User from "../models/client/User.model.js";
+import Admin from "../models/admin/Admin.model.js";
 import jwt from "jsonwebtoken";
 import Session from "../models/client/Session.model.js";
 import crypto from "crypto";
@@ -48,8 +49,10 @@ export const signUp = asyncHandler(async (req, res) => {
     console.warn("[Auth] Failed to send verification email:", emailErr.message);
   }
 
-  // Telegram notification (silent fail)
-  notifyNewUser(username, email);
+  // Telegram notification (silent fail — fire-and-forget)
+  notifyNewUser(username, email).catch((tgErr) => {
+    console.warn("[Auth] Failed to notify via Telegram:", tgErr.message);
+  });
 
   res.status(201).json({ message: "Tạo tài khoản thành công" });
 });
@@ -60,17 +63,35 @@ export const signIn = asyncHandler(async (req, res) => {
     throw new AppError("Thiếu dữ liệu", 400);
   }
 
+  // ── Try User model first ───────────────────────────────────────────────
   const user = await User.findOne({
     $or: [{ email: identifier }, { username: identifier }],
   }).select("+hashedPassword +failedLoginAttempts +lockoutUntil");
 
+  let isAdmin = false;
+  let matchedModel = user;
+  let role = "user";
+
+  // ── If not found in User, try Admin model ──────────────────────────────
   if (!user) {
+    const admin = await Admin.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    }).select("+password +failedLoginAttempts +lockoutUntil");
+
+    if (admin) {
+      matchedModel = admin;
+      isAdmin = true;
+      role = admin.role || "admin";
+    }
+  }
+
+  if (!matchedModel) {
     throw new AppError("Sai email/tên đăng nhập hoặc password", 401);
   }
 
   // ── Check lockout ──────────────────────────────────────────────────────
-  if (user.lockoutUntil && user.lockoutUntil > new Date()) {
-    const remainingMs = user.lockoutUntil.getTime() - Date.now();
+  if (matchedModel.lockoutUntil && matchedModel.lockoutUntil > new Date()) {
+    const remainingMs = matchedModel.lockoutUntil.getTime() - Date.now();
     const remainingMin = Math.ceil(remainingMs / 60000);
     throw new AppError(
       `Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau ${remainingMin} phút.`,
@@ -78,57 +99,67 @@ export const signIn = asyncHandler(async (req, res) => {
     );
   }
   // Reset lockout if duration has passed
-  if (user.lockoutUntil && user.lockoutUntil <= new Date()) {
-    user.failedLoginAttempts = 0;
-    user.lockoutUntil = null;
-    await user.save();
+  if (matchedModel.lockoutUntil && matchedModel.lockoutUntil <= new Date()) {
+    matchedModel.failedLoginAttempts = 0;
+    matchedModel.lockoutUntil = null;
+    await matchedModel.save();
   }
 
-  if (!user.isVerified) {
+  // ── Check email verification (only for User) ──────────────────────────
+  if (!isAdmin && !matchedModel.isVerified) {
     throw new AppError(
       "Email chưa được xác thực. Vui lòng kiểm tra hộp thư hoặc yêu cầu gửi lại link.",
       403,
     );
   }
 
+  // ── Check admin isActive ──────────────────────────────────────────────
+  if (isAdmin && !matchedModel.isActive) {
+    throw new AppError("Tài khoản admin đã bị khóa", 403);
+  }
+
   const userData = {
-    id: user._id.toString(), // ← Quan trọng: chuyển ObjectId → string
-    username: user.username,
-    email: user.email,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    balance: user.balance,
-    createdAt: user.createdAt,
+    id: matchedModel._id.toString(),
+    username: matchedModel.username,
+    email: matchedModel.email,
+    displayName: matchedModel.displayName || matchedModel.username,
+    avatarUrl: matchedModel.avatarUrl,
+    balance: matchedModel.balance || 0,
+    createdAt: matchedModel.createdAt,
+    role,
   };
 
-  const passwordCorrect = await user.comparePassword(password);
+  // ── Compare password — User uses bcrypt, Admin uses bcryptjs ──────────
+  const passwordCorrect = isAdmin
+    ? await matchedModel.matchPassword(password)
+    : await matchedModel.comparePassword(password);
 
   if (!passwordCorrect) {
-    // ── Increment failed attempts ─────────────────────────────────────────
-    user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
-    if (user.failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
-      user.lockoutUntil = new Date(Date.now() + LOCKOUT_DURATION);
+    matchedModel.failedLoginAttempts = (matchedModel.failedLoginAttempts || 0) + 1;
+    if (matchedModel.failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
+      matchedModel.lockoutUntil = new Date(Date.now() + LOCKOUT_DURATION);
     }
-    await user.save();
+    await matchedModel.save();
     throw new AppError("Sai email hoặc password", 401);
   }
 
   // ── Reset on successful login ──────────────────────────────────────────
-  if (user.failedLoginAttempts || user.lockoutUntil) {
-    user.failedLoginAttempts = 0;
-    user.lockoutUntil = null;
-    await user.save();
+  if (matchedModel.failedLoginAttempts || matchedModel.lockoutUntil) {
+    matchedModel.failedLoginAttempts = 0;
+    matchedModel.lockoutUntil = null;
+    await matchedModel.save();
   }
 
+  // ── Create client session ──────────────────────────────────────────────
   const accessToken = jwt.sign(
-    { userId: user._id },
+    { userId: matchedModel._id, role },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: ACCESS_TOKEN_SECRET_TTL },
   );
   const refreshToken = crypto.randomBytes(64).toString("hex");
 
   await Session.create({
-    userId: user._id,
+    userId: matchedModel._id,
     refreshToken,
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL),
   });
@@ -139,9 +170,54 @@ export const signIn = asyncHandler(async (req, res) => {
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: REFRESH_TOKEN_TTL,
   });
+
+  // ── If admin, also create admin session for /admin access ─────────────
+  if (isAdmin) {
+    // Skip admin session if 2FA is enabled — force use /admin/login for TOTP
+    const has2FA = matchedModel.totpEnabled && matchedModel.totpSecret;
+    if (!has2FA) {
+      const adminAccessToken = jwt.sign(
+        { id: matchedModel._id },
+        process.env.JWT_ADMIN_SECRET,
+        { expiresIn: "30m" },
+      );
+      const adminRefreshToken = crypto.randomBytes(64).toString("hex");
+
+      matchedModel.refreshToken = adminRefreshToken;
+      matchedModel.lastLogin = new Date();
+      matchedModel.loginIP = req.ip;
+      await matchedModel.save();
+
+      res.cookie("admin_token", adminAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        path: "/api/admin",
+        maxAge: 30 * 60 * 1000,
+      });
+      res.cookie("admin_refresh", adminRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        path: "/api/admin",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      // Attach admin data to response for frontend to initialise useAdminAuth store
+      userData.adminSession = {
+        id: matchedModel._id.toString(),
+        username: matchedModel.username,
+        email: matchedModel.email,
+        role: matchedModel.role || "admin",
+        isActive: matchedModel.isActive,
+        lastLogin: matchedModel.lastLogin?.toISOString(),
+      };
+    }
+  }
+
   res.status(200).json({
     success: true,
-    message: `User ${user.displayName} đã đăng nhập thành công`,
+    message: `${userData.displayName} đã đăng nhập thành công`,
     data: { accessToken, user: userData },
   });
 });

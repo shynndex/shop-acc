@@ -6,6 +6,41 @@ import type {
   PublicCmsPageResponse,
 } from "@/types/admin/ui.type";
 
+// ─── Public site config response (unwrapped by axios interceptor) ─────
+export interface PublicSiteConfigData {
+  shopName: string;
+  logo: string;
+  description: string;
+  contact: {
+    phone: string;
+    email: string;
+    address: string;
+    facebook: string;
+    zalo: string;
+    telegram: string;
+    messenger: string;
+    discord: string;
+  };
+  support: {
+    chatEnabled: boolean;
+    messengerEnabled: boolean;
+    zaloEnabled: boolean;
+    telegramEnabled: boolean;
+    discordEnabled: boolean;
+    marqueeEnabled: boolean;
+    marqueeSpeed: "slow" | "normal" | "fast";
+  };
+  theme: {
+    primary: string;
+    button: string;
+    heading: string;
+    background: string;
+    footer: string;
+    footerText: string;
+  };
+  topNotification: string;
+}
+
 export const uiService = {
   /**
    * GET /api/ui/categories
@@ -50,5 +85,33 @@ export const uiService = {
       success: boolean;
       data: { text: string; isActive: boolean };
     }>("/ui/scrolling-text");
+  },
+
+  /**
+   * GET /api/ui/site-config
+   * Lấy cấu hình public của website (tên shop, contact, support, theme)
+   */
+  getSiteConfig: async () => {
+    return await api.get<PublicSiteConfigData>("/ui/site-config");
+  },
+
+  /**
+   * GET /api/ui/contact-info
+   * Lấy thông tin liên hệ (phone, email, social links)
+   */
+  getContactInfo: async () => {
+    return await api.get<{
+      success: boolean;
+      data: {
+        phone: string;
+        email: string;
+        address: string;
+        facebook: string;
+        zalo: string;
+        telegram: string;
+        messenger: string;
+        discord: string;
+      };
+    }>("/ui/contact-info");
   },
 };

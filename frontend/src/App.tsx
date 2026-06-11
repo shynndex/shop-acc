@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AppRouter } from "./routes";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { SiteConfigProvider } from "@/hooks/usePublicSiteConfig";
 import { useThemeStore } from "./stores/useThemeStore";
 
 const LoadingFallback = () => (
@@ -37,11 +38,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster richColors position="top-right" />
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          <AppRouter />
-        </Suspense>
-      </ErrorBoundary>
+      <SiteConfigProvider>
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingFallback />}>
+            <AppRouter />
+          </Suspense>
+        </ErrorBoundary>
+      </SiteConfigProvider>
       {import.meta.env.DEV && <ReactQueryDevtools />}
     </QueryClientProvider>
   );

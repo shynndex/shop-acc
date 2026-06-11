@@ -20,6 +20,7 @@ export interface AuthResponse {
     displayName: string;
     avatarUrl?: string;
     balance?: number;
+    role?: "user" | "admin" | "super_admin";
     createdAt: string;
   };
   message?: string;

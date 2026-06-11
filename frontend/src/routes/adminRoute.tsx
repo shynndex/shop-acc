@@ -23,6 +23,11 @@ const GeneralSettingsPage = lazy(() => import("@/pages/admin/config/GeneralSetti
 const BankAccountsPage = lazy(() => import("@/pages/admin/config/BankAccountsPage"));
 const CardProvidersPage = lazy(() => import("@/pages/admin/config/CardProvidersPage"));
 const UiManagementPage = lazy(() => import("@/pages/admin/config/UiManagementPage"));
+const ContactPage = lazy(() => import("@/pages/admin/config/ContactPage"));
+const SupportChannelsPage = lazy(() => import("@/pages/admin/config/SupportChannelsPage"));
+const SeoPage = lazy(() => import("@/pages/admin/config/SeoPage"));
+const ThemeColorsPage = lazy(() => import("@/pages/admin/config/ThemeColorsPage"));
+const PromotionsPage = lazy(() => import("@/pages/admin/config/PromotionsPage"));
 const AdminProfile = lazy(() => import("@/pages/admin/Profile"));
 
 /**
@@ -63,7 +68,12 @@ export const adminRoutes = (
           <Route path="general" element={withErrorBoundary(GeneralSettingsPage)} />
           <Route path="banks" element={withErrorBoundary(BankAccountsPage)} />
           <Route path="cards" element={withErrorBoundary(CardProvidersPage)} />
+          <Route path="contact" element={withErrorBoundary(ContactPage)} />
+          <Route path="support" element={withErrorBoundary(SupportChannelsPage)} />
+          <Route path="seo" element={withErrorBoundary(SeoPage)} />
+          <Route path="theme" element={withErrorBoundary(ThemeColorsPage)} />
           <Route path="ui" element={withErrorBoundary(UiManagementPage)} />
+          <Route path="promotions" element={withErrorBoundary(PromotionsPage)} />
         </Route>
         <Route path="admins" element={withErrorBoundary(AdminAdmins)} />
         <Route path="profile" element={withErrorBoundary(AdminProfile)} />

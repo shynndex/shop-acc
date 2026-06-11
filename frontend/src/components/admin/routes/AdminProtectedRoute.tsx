@@ -26,6 +26,15 @@ export const AdminProtectedRoute = ({ requireRole }: AdminProtectedRouteProps = 
 
   // ─── Auth check on mount ──────────────────────────────────────────
   useEffect(() => {
+    // If the admin was already authenticated via client signIn (login-form.tsx
+    // directly populated the useAdminAuth store), skip the HTTP request and
+    // just mark initialisation as complete. Subsequent API calls (fetching
+    // accounts, deposits, etc.) will verify the cookie — if it fails, the
+    // adminAxios interceptor will handle the 401 redirect to /admin/login.
+    if (admin && isAuthenticated && !loading) {
+      setInitializing(false);
+      return;
+    }
     checkAuth().finally(() => setInitializing(false));
   }, []);
 

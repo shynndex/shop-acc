@@ -12,6 +12,7 @@ import TopDepositorsPodium from "@/components/client/sections/TopDepositorsPodiu
 import ScrollingMarquee from "@/components/client/sections/ScrollingMarquee";
 import GameProductSections from "@/components/client/sections/GameProductSections";
 import PopupRenderer from "@/components/client/PopupRenderer";
+import { useSiteConfig } from "@/hooks/usePublicSiteConfig";
 import type { Account } from "@/types";
 import type { Banner } from "@/types/admin/ui.type";
 import {
@@ -20,13 +21,13 @@ import {
   ChevronRight,
   Tag,
   Gamepad2,
-  MessageCircle,
 } from "lucide-react";
 
 /* ════════════════════════════════════════════════════════════════════
    Main Banner / Carousel
    ════════════════════════════════════════════════════════════════════ */
 const MainBanner = () => {
+  const { siteConfig } = useSiteConfig();
   const { data, isLoading } = useQuery({
     queryKey: ["ui", "banners"],
     queryFn: () => uiService.getBanners(),
@@ -52,6 +53,8 @@ const MainBanner = () => {
 
   // Fallback banner
   if (banners.length === 0) {
+    const shopName = siteConfig?.shopName || "ShopSam";
+    const description = siteConfig?.description || "Mua bán tài khoản game uy tín";
     return (
       <GlassCard className="relative overflow-hidden h-[375px] md:h-[540px] border-0 p-0" gradientBorder>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-700 rounded-2xl">
@@ -62,16 +65,12 @@ const MainBanner = () => {
           <div className="relative z-10 h-full flex flex-col items-center justify-center text-white p-6">
             <h1 className="text-4xl md:text-6xl font-black mb-3 text-center drop-shadow-lg">
               <span className="bg-gradient-to-r from-cyan-300 via-white to-orange-400 bg-clip-text text-transparent">
-                SHOPT1
-              </span>
-              <span className="text-orange-500">.</span>
-              <span className="bg-gradient-to-r from-cyan-300 via-white to-cyan-300 bg-clip-text text-transparent">
-                COM
+                {shopName}
               </span>
             </h1>
             <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-lg backdrop-blur-sm">
-              <span className="text-lg">🎵</span>
-              <span className="font-semibold text-sm">MẠNH LÀM SỚP ẠC</span>
+              <span className="text-lg">✨</span>
+              <span className="font-semibold text-sm">{description}</span>
             </div>
           </div>
         </div>
@@ -242,13 +241,7 @@ export default function HomePage() {
       {/* ─── Popup Renderer ─── */}
       <PopupRenderer currentPage="home" />
 
-      {/* ─── Floating Chat Button ─── */}
-      <Button
-        size="icon"
-        className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-gradient-brand text-white hover:bg-gradient-brand-hover shadow-lg shadow-blue-500/30 z-40 hover:scale-110 active:scale-95 transition-all duration-200 safe-area-bottom"
-      >
-        <MessageCircle className="size-5 sm:size-5" />
-      </Button>
+
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { calculateDiscount } from "./giftcode.controller.js";
 import { notifyNewOrder } from "../services/telegram.service.js";
 import { releaseAccount, sellAccount } from "../services/accountReservation.service.js";
 import { logBalanceChange } from "../services/auditLogger.service.js";
+import { pushMarqueeEvent } from "../services/marquee.service.js";
 
 // ─────────────────────────────────────────────────────────────────
 // PURCHASE ACCOUNT (Balance payment)
@@ -148,6 +149,12 @@ export const purchaseAccount = asyncHandler(async (req, res) => {
     );
 
     await session.commitTransaction();
+
+      // ── Push marquee event ────────────────────────────────────
+    pushMarqueeEvent("purchase", user.displayName || user.username, {
+      item: account.title,
+      amount: finalAmount,
+    });
 
     // Telegram notification (silent fail)
     notifyNewOrder(

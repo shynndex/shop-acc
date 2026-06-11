@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { uiService } from "@/services/client/uiService";
+import { useSiteConfig } from "@/hooks/usePublicSiteConfig";
 import {
   Mail,
   Phone,
@@ -104,9 +105,17 @@ const GameLinks = () => {
 };
 
 export const Footer = () => {
+  const { shopName } = useSiteConfig();
+
   return (
     <footer className="w-full mt-auto relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black" />
+      {/* Footer background — uses dynamic --site-footer, fallback to slate-900 */}
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: "var(--site-footer, #1f2937)" }}
+      />
+      {/* Subtle gradient overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
       <div className="absolute inset-0 opacity-[0.03]">
         <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.3) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(6, 182, 212, 0.2) 0%, transparent 50%)" }} />
       </div>
@@ -120,7 +129,7 @@ export const Footer = () => {
                 <div className="size-8 rounded-lg bg-gradient-brand flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <Sparkles className="size-4 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gradient-brand">ShopSam</span>
+                <span className="text-xl font-bold text-gradient-brand">{shopName}</span>
               </Link>
               <p className="text-sm text-white/50 leading-relaxed max-w-xs">Nền tảng giao dịch tài khoản game uy tín hàng đầu Việt Nam. Bảo mật 100%, hỗ trợ 24/7, thanh toán đa dạng.</p>
               <div className="flex flex-wrap gap-2">
@@ -197,7 +206,7 @@ export const Footer = () => {
         <div className="border-t border-white/5 bg-black/20">
           <div className="container-wrapper py-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/40">
-              <p>© 2025 ShopSam. Tất cả quyền được bảo lưu.</p>
+              <p>© 2025 {shopName}. Tất cả quyền được bảo lưu.</p>
               <p>Made with <span className="text-red-400">❤️</span> for gamers</p>
             </div>
           </div>

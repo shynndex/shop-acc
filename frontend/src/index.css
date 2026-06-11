@@ -69,6 +69,14 @@
 :root {
   --radius: 0.625rem;
 
+  /* ── Dynamic theme colors (set by SiteConfigProvider) ────── */
+  --site-primary: #2563eb;
+  --site-button: #2563eb;
+  --site-heading: #111827;
+  --site-background: #ffffff;
+  --site-footer: #1f2937;
+  --site-footer-text: #ffffff;
+
   /* Light mode — blue gradient primary */
   --background: oklch(0.985 0.002 240);
   --foreground: oklch(0.15 0.02 250);
@@ -179,9 +187,23 @@
     }
   }
 
-  /* Smooth theme transitions */
-  html {
-    transition: color-scheme 0.3s ease;
+  /* Smooth theme transitions — scoped to avoid jank */
+  body,
+  header,
+  footer,
+  [class*="glass"],
+  [class*="gradient-brand"] {
+    transition: background-color 0.3s ease, color 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  /* Disable transitions during page load to avoid flash */
+  html.preload body,
+  html.preload header,
+  html.preload footer,
+  html.preload [class*="glass"],
+  html.preload [class*="gradient-brand"] {
+    transition: none !important;
   }
 }
 
@@ -230,37 +252,37 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
-  /* Blue gradient backgrounds */
+  /* Blue gradient backgrounds — uses dynamic --site-primary from SiteConfig */
   .bg-gradient-brand {
-    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--site-button) 0%, color-mix(in srgb, var(--site-button) 60%, #06b6d4) 100%);
   }
 
   .bg-gradient-brand-hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--site-button) 80%, black) 0%, color-mix(in srgb, var(--site-button) 60%, #0891b2) 100%);
   }
 
   .bg-gradient-brand-soft {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--site-button) 10%, transparent) 0%, color-mix(in srgb, #06b6d4 10%, transparent) 100%);
   }
 
   .dark .bg-gradient-brand-soft {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--site-button) 15%, transparent) 0%, color-mix(in srgb, #06b6d4 15%, transparent) 100%);
   }
 
   .bg-gradient-brand-r {
-    background: linear-gradient(90deg, #2563eb 0%, #06b6d4 50%, #2563eb 100%);
+    background: linear-gradient(90deg, var(--site-button) 0%, color-mix(in srgb, var(--site-button) 60%, #06b6d4) 50%, var(--site-button) 100%);
   }
 
   /* Gradient text */
   .text-gradient-brand {
-    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--site-button) 0%, color-mix(in srgb, var(--site-button) 60%, #06b6d4) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-gradient-brand-r {
-    background: linear-gradient(90deg, #06b6d4 0%, #2563eb 50%, #06b6d4 100%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--site-button) 60%, #06b6d4) 0%, var(--site-button) 50%, color-mix(in srgb, var(--site-button) 60%, #06b6d4) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

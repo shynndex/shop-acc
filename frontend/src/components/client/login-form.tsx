@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useAdminAuth } from "@/stores/useAdminAuth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
@@ -94,9 +95,37 @@ export function LoginForm({
       if (success) {
         toast.success("Đăng nhập thành công! 🎉");
 
-        // Redirect thông minh: về trang trước đó hoặc trang chủ
-        const from = location.state?.from?.pathname || "/";
-        navigate(from, { replace: true });
+        // Check if user is admin — redirect to admin panel
+        const user = useAuthStore.getState().user;
+        if (user?.role === "admin" || user?.role === "super_admin") {
+          // Directly initialise admin auth state from signIn response
+          // This ensures AdminProtectedRoute shows the dashboard immediately
+          // even before checkAuth() completes with the admin_token cookie.
+          const adminSession = (user as any).adminSession;
+          if (adminSession) {
+            useAdminAuth.setState({
+              admin: {
+                id: adminSession.id,
+                username: adminSession.username,
+                email: adminSession.email,
+                role: adminSession.role,
+                isActive: adminSession.isActive ?? true,
+                lastLogin: adminSession.lastLogin,
+              },
+              isAuthenticated: true,
+              loading: false,
+            });
+            navigate("/admin", { replace: true });
+          } else {
+            // Admin with 2FA enabled — force use /admin/login for TOTP
+            toast.info("Vui lòng đăng nhập qua trang Admin để xác thực 2FA");
+            navigate("/admin/login", { replace: true });
+          }
+        } else {
+          // Redirect thông minh: về trang trước đó hoặc trang chủ
+          const from = location.state?.from?.pathname || "/";
+          navigate(from, { replace: true });
+        }
       }
     } catch (error: any) {
       // Nếu lỗi 403 (email chưa xác thực), hiển thị nút gửi lại

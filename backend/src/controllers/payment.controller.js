@@ -20,12 +20,14 @@ import { asyncHandler, AppError } from "../middlewares/errorHandler.js";
 import { calculateDiscount } from "./giftcode.controller.js";
 import Giftcode from "../models/Giftcode.model.js";
 import { notifyNewDeposit, notifyDepositSuccess } from "../services/telegram.service.js";
+import { pushMarqueeEvent } from "../services/marquee.service.js";
 import { reserveAccount, releaseAccount } from "../services/accountReservation.service.js";
 import {
   finalizePurchase,
   cancelPurchase,
 } from "../services/purchaseFinalization.service.js";
-import { logBalanceChange } from "../services/auditLogger.service.js";  // Helper: validate giftcode for deposit, returns bonus info or null
+import { logBalanceChange } from "../services/auditLogger.service.js";
+import Promotion from "../models/admin/Promotion.model.js";  // Helper: validate giftcode for deposit, returns bonus info or null
 async function applyGiftcodeBonus(code, amount) {
   if (!code) return null;
   const giftcode = await Giftcode.findOne({
@@ -45,6 +47,62 @@ async function applyGiftcodeBonus(code, amount) {
     value: giftcode.value,
     amount: result.discountAmount,
   };
+}
+
+// Helper: Apply first deposit promotion (balance bonus or random spin)
+// Uses atomic $addToSet to prevent race conditions from concurrent deposits
+async function applyFirstDepositPromotion(userId, depositAmount, session) {
+  const now = new Date();
+  const promotions = await Promotion.find({
+    isActive: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now },
+    minDepositAmount: { $lte: depositAmount },
+  }).session(session);
+
+  for (const promo of promotions) {
+    // Atomic claim: only succeeds if user not already in usedBy
+    const result = await Promotion.findOneAndUpdate(
+      { _id: promo._id, usedBy: { $ne: userId } },
+      { $addToSet: { usedBy: userId } },
+      { session, new: true }
+    );
+
+    // If result is null, user already claimed this promo — skip
+    if (!result) continue;
+
+    // Apply reward
+    if (promo.rewardType === "balance_bonus" && promo.rewardAmount > 0) {
+      await User.findByIdAndUpdate(
+        userId,
+        { $inc: { balance: promo.rewardAmount } },
+        { session }
+      );
+      return {
+        promotionId: promo._id,
+        promotionName: promo.name,
+        rewardType: "balance_bonus",
+        rewardAmount: promo.rewardAmount,
+      };
+    }
+
+    if (promo.rewardType === "random_spin") {
+      const spinsAwarded = Math.floor(Math.random() * promo.rewardSpins) + 1;
+      await User.findByIdAndUpdate(
+        userId,
+        { $inc: { spinCount: spinsAwarded } },
+        { session }
+      );
+      return {
+        promotionId: promo._id,
+        promotionName: promo.name,
+        rewardType: "random_spin",
+        spinsAwarded,
+      };
+    }
+  }
+
+  return null;
 }
 
 // Helper: CAS update deposit status (idempotent, version-guarded)
@@ -217,6 +275,9 @@ export const payosWebhook = asyncHandler(async (req, res) => {
         { session, new: true, select: "balance displayName username" },
       );
 
+      // ── Apply first deposit promotion ──────────────────────────
+      const promotionResult = await applyFirstDepositPromotion(deposit.user, data.amount, session);
+
       // ── Audit log ───────────────────────────────────────────────
       if (updatedUser) {
         logBalanceChange({
@@ -227,16 +288,20 @@ export const payosWebhook = asyncHandler(async (req, res) => {
           balanceBefore: updatedUser.balance - totalCredit,
           balanceAfter: updatedUser.balance,
           reference: deposit.referenceCode,
-          note: `Nạp ngân hàng${deposit.discount?.code ? ` (giảm: ${deposit.discount.code})` : ""}`,
+          note: `Nạp ngân hàng${deposit.discount?.code ? ` (giảm: ${deposit.discount.code})` : ""}${promotionResult ? ` + KM: ${promotionResult.promotionName}` : ""}`,
           ip: req.ip,
         });
       }
 
       // bonusAmount already synced via CAS update above — no in-memory set needed
 
-      // Telegram notification (silent fail)
+      // ── Push marquee deposit event ────────────────────────────
       const depositUser = await User.findById(deposit.user).select("displayName username balance");
       if (depositUser) {
+        pushMarqueeEvent("deposit", depositUser.displayName || depositUser.username, {
+          amount: totalCredit,
+        });
+
         notifyDepositSuccess(
           depositUser.displayName || depositUser.username,
           totalCredit,
@@ -430,6 +495,9 @@ export const cardWebhook = asyncHandler(async (req, res) => {
         { session, new: true, select: "balance displayName username" },
       );
 
+      // ── Apply first deposit promotion ──────────────────────────
+      const promotionResult = await applyFirstDepositPromotion(deposit.user, parsed.receivedAmount, session);
+
       // ── Audit log ───────────────────────────────────────────────
       if (updatedUser) {
         logBalanceChange({
@@ -440,17 +508,21 @@ export const cardWebhook = asyncHandler(async (req, res) => {
           balanceBefore: updatedUser.balance - totalCredit,
           balanceAfter: updatedUser.balance,
           reference: deposit._id,
-          note: `Nạp thẻ ${updatedDeposit.provider}${updatedDeposit.discount?.code ? ` (giảm: ${updatedDeposit.discount.code})` : ""}`,
+          note: `Nạp thẻ ${updatedDeposit.provider}${updatedDeposit.discount?.code ? ` (giảm: ${updatedDeposit.discount.code})` : ""}${promotionResult ? ` + KM: ${promotionResult.promotionName}` : ""}`,
           ip: req.ip,
         });
       }
     }
     await session.commitTransaction();
 
-    // Telegram notification (silent fail)
+    // ── Push marquee deposit event (card) ─────────────────────
     if (parsed.success) {
       const depositUser = await User.findById(deposit.user).select("displayName username balance");
       if (depositUser) {
+        pushMarqueeEvent("deposit", depositUser.displayName || depositUser.username, {
+          amount: parsed.receivedAmount + (deposit.discount?.amount || 0),
+        });
+
         notifyDepositSuccess(
           depositUser.displayName || depositUser.username,
           parsed.receivedAmount + (deposit.discount?.amount || 0),

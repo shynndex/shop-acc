@@ -6,6 +6,7 @@ export interface User {
   avatarUrl?: string;
   phone?: string;
   balance?: number;
+  role?: "user" | "admin" | "super_admin";
   createdAt?: string;
   updatedAt?: string;
 }

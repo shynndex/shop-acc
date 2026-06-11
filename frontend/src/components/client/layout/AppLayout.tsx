@@ -2,6 +2,8 @@ import Header from "./Header";
 import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "./Footer";
 import { useEffect, useRef, useState } from "react";
+import FloatingChatWidget from "@/components/client/FloatingChatWidget";
+import TopNotification from "@/components/client/TopNotification";
 
 const EXIT_DURATION = 150;
 const ENTER_DURATION = 200;
@@ -62,6 +64,7 @@ const AppLayout = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ScrollToTop />
+      <TopNotification />
       <Header />
 
       <main className="flex-1 container-wrapper">
@@ -71,6 +74,9 @@ const AppLayout = () => {
       </main>
 
       <Footer />
+
+      {/* Floating Chat — visible on all client pages */}
+      <FloatingChatWidget />
     </div>
   );
 };
