@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSiteConfig, useUpdateSiteConfig } from "@/hooks/queries/useSiteConfig";
-import { Phone, Mail, MapPin, Facebook, MessageCircle, Send, Globe } from "lucide-react";
+import { Phone, Mail, MapPin, ExternalLink, MessageCircle, Send, Globe } from "lucide-react";
 
 const ContactPage = () => {
   const { data, isLoading } = useSiteConfig();
@@ -50,7 +50,7 @@ const ContactPage = () => {
     { key: "phone", label: "Số điện thoại", icon: Phone, placeholder: "0123.456.789" },
     { key: "email", label: "Email", icon: Mail, placeholder: "support@example.com" },
     { key: "address", label: "Địa chỉ", icon: MapPin, placeholder: "123 Đường ABC, Quận XYZ" },
-    { key: "facebook", label: "Facebook", icon: Facebook, placeholder: "https://facebook.com/..." },
+    { key: "facebook", label: "Facebook", icon: ExternalLink, placeholder: "https://facebook.com/..." },
     { key: "zalo", label: "Zalo", icon: MessageCircle, placeholder: "https://zalo.me/..." },
     { key: "telegram", label: "Telegram", icon: Send, placeholder: "https://t.me/..." },
     { key: "messenger", label: "Messenger", icon: MessageCircle, placeholder: "https://m.me/..." },

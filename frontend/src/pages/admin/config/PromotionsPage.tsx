@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { promotionService, Promotion, PromotionFormData } from "@/services/admin/promotion.service";
+import { promotionService } from "@/services/admin/promotion.service";
+import type { Promotion, PromotionFormData } from "@/services/admin/promotion.service";
 
 export default function PromotionsPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);

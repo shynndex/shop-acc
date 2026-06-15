@@ -1,7 +1,4 @@
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../../libs/cloudinary.config.js";
 import multer from "multer";
-import { generateId } from "../../utils/generateId.js";
 import {
   validateImageMagicBytes,
   ALLOWED_IMAGE_MIMES,
@@ -32,29 +29,6 @@ async function getSharp() {
   }
   return sharpInstance;
 }
-
-/**
- * Cloudinary storage configuration.
- * Images are only uploaded to Cloudinary AFTER passing all validation
- * (extension, MIME, and magic bytes checks in fileFilter + validateUploadedFile middleware).
- */
-const cloudinaryStorage = new CloudinaryStorage({
-  cloudinary,
-  params: async (req, file) => {
-    const date = new Date().toISOString().split("T")[0];
-    return {
-      folder: `shop_acc/accounts/${date}`,
-      // Cloudinary-level allowed formats (additional safety net)
-      allowed_formats: ["jpg", "png", "jpeg", "webp", "gif"],
-      transformation: [
-        { width: 1200, height: 1200, crop: "limit" },
-        { quality: "auto:good" },
-        { fetch_format: "auto" },
-      ],
-      public_id: `${generateId()}`,
-    };
-  },
-});
 
 /**
  * Use memory storage so we can validate magic bytes BEFORE uploading to Cloudinary.

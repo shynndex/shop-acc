@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "main": "src/server.js",
   "scripts": {
-    "seed:admin": "node src/script/seedAdmin.js",
-    "reset:admin": "node src/script/resetAdminPassword.js",
-    "test": "vitest run",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
@@ -30,7 +27,6 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.2",
     "multer": "^2.1.1",
-    "multer-storage-cloudinary": "^4.0.0",
     "nanoid": "^5.1.9",
     "qrcode": "^1.5.4",
     "resend": "^6.12.2",
@@ -38,10 +34,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/multer": "^2.1.0",
-    "@types/qrcode": "^1.5.6",
-    "@types/speakeasy": "^2.0.10",
-    "nodemon": "^3.1.14",
-    "vitest": "^4.1.7"
+    "nodemon": "^3.1.14"
   }
 }
