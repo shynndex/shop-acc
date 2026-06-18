@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const isDev = process.env.NODE_ENV !== "production";
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED !== "false";
 
 // ── Lazy-init nodemailer transporter (Ethereal test account) ─────────────
 let _transporter = null;
@@ -179,6 +180,10 @@ async function sendViaResend({ to, subject, html }) {
 }
 
 async function sendEmail({ to, subject, html }) {
+  if (!EMAIL_ENABLED) {
+    console.log(`[Mail] DISABLED — skipped sending to ${to}: "${subject}"`);
+    return null;
+  }
   if (isDev) {
     return sendViaNodemailer({ to, subject, html });
   }
