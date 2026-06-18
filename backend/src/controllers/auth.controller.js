@@ -12,7 +12,7 @@ const ACCESS_TOKEN_SECRET_TTL = "30m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
 // ── Brute-force protection ──────────────────────────────────────────────
-const MAX_LOGIN_ATTEMPTS = 5;
+const MAX_LOGIN_ATTEMPTS = 10;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 phút
 
 export const signUp = asyncHandler(async (req, res) => {

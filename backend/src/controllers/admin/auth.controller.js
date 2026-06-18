@@ -8,7 +8,7 @@ import { asyncHandler, AppError } from "../../middlewares/errorHandler.js";
 import { logAdminAction } from "../../services/adminAudit.service.js";
 
 // ── Brute-force protection ──────────────────────────────────────────────
-const MAX_LOGIN_ATTEMPTS = 5;
+const MAX_LOGIN_ATTEMPTS = 10;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 phút
 
 const generateToken = (admin) => {
